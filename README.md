@@ -1,5 +1,5 @@
 "Hover Run" is a little game made with the pixel game engine by Javidx9. 
-[https://onelonecoder.org/](https://github.com/onelonecoder)
+[https://github.com/onelonecoder](https://github.com/onelonecoder)
 
 You fly around picking up cargo and deliver it to a dropzone.
 
