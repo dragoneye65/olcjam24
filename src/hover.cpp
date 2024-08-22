@@ -1,6 +1,11 @@
 #include "pge.h"
 
 
+
+
+
+#define DEBUG_PRINT
+
 // *: starting position
 // u: unloading pad
 // 0-9: cargo type, 
@@ -84,6 +89,10 @@ public:
 	olc::vf2d startpos;			// doh
 	olc::vf2d dropzone;  		// dropzone
 	std::vector<cargo> cargos;	// yea you guessed it
+	std::vector<cargo>::iterator cargo_it;
+
+	bool cargo_no_pickup = false;
+
 
 	int ship_inventory_capasity = 3;
 	std::vector<cargo> inventory;
@@ -154,12 +163,12 @@ public:
 		// Called once at the start, so create things here
 		charmap_dim = GetCharMapDimentions();
 
-		ship_on_screen_pos = { ScreenWidth()/3,ScreenHeight()/3};
+		ship_on_screen_pos = { ScreenWidth()/2,ScreenHeight()/2};
 		minimap_position = {ScreenWidth()-minimap_size.x-1, 1};
 
 		InitGameMap();
 		ship_pos = startpos;
-
+		cargo_it = cargos.begin();
 		
 
 		return true;
@@ -181,6 +190,7 @@ public:
 		mouse_pos_old = mouse_pos;
 		mouse_pos = GetMousePos();
 
+
 		TimerUpdateTrigger(fElapsedTime, 500);
 /*
 		if (timer_toggle_on_state) {
@@ -191,6 +201,15 @@ public:
 */
 
 		Clear(olc::VERY_DARK_BLUE);
+
+
+#ifdef DEBUG_PRINT
+		// show mouse cursor + position
+		DrawLine(mouse_pos-olc::vi2d{5,5}, mouse_pos+olc::vi2d{5,5},olc::RED);
+		DrawLine(mouse_pos-olc::vi2d{-5,5}, mouse_pos+olc::vi2d{-5,5},olc::RED);
+		ss.str(""); ss << "(" << mouse_pos.x << "," << mouse_pos.y << ")";
+		DrawString(mouse_pos, ss.str(),olc::RED);
+#endif
 
 		if ( game_state == state::INTRO) {
 			ss << std::fixed << std::setprecision(2);
@@ -338,11 +357,13 @@ public:
 			if ( ship_pos.y < 0) { ship_pos.y = 0.0; ship_velocity[1] *= -1.0;}
 			if ( ship_pos.y > 500-40) { ship_pos.y = 500.0-40; ship_velocity[1] *= -1.0;}
 
+#ifdef DEBUG_PRINT
 			// Show the position to the ship under minimap
 			ss.str(""); ss << ship_pos.x; tmpstr = ss.str();
 			DrawString({minimap_position.x+20,minimap_position.y+minimap_size.y+2},tmpstr,olc::YELLOW); 
 			ss.str(""); ss << ship_pos.y; tmpstr = ss.str();
 			DrawString({minimap_position.x+80,minimap_position.y+minimap_size.y+2},tmpstr,olc::YELLOW); 
+#endif
 
 			// Altitude check limits
 			if ( altitude > max_altitude) {
@@ -356,13 +377,21 @@ public:
 				ship_velocity[2] = 0.0; // z
 				}
 
-			DrawShipOnScreen( ship_on_screen_pos, 30); // x,y,engine size
+			DrawShipOnScreen( ship_on_screen_pos, 10); // x,y,engine size
 
+#ifdef DEBUG_PRINT
+			// show ship real position
+			ss.str(""); 
+			ss << "(" << ship_on_screen_pos.x << "," << ship_on_screen_pos.y << ")"; 
+			DrawString({0,0},ss.str(),olc::YELLOW); 
+#endif
 			DrawAltitude( 500, 200);
-			DrawShipAngle( ship_on_screen_pos, ship_angle_x, ship_angle_y);
+// 			DrawShipAngle( ship_on_screen_pos, ship_angle_x, ship_angle_y);
 			DrawMinimap( minimap_position, ship_pos);
 			DrawGameMapOnScreen( ship_pos );
-			CheckDropPickupOnLanding();
+
+			if (!cargo_no_pickup)
+				CheckDropPickupOnLanding();
 			ShowInventory( inventory_pos);
 			tmpstr = "Score: ";
 			DrawString({ 10,10},tmpstr,olc::GREEN); 
@@ -386,7 +415,22 @@ public:
 			if (ship_crashed)
 				game_state = state::THEEND;
 
-		} // endif: state_GAMEON
+
+			// Set ship to next object
+			if ( GetKey(olc::Key::N).bReleased ) {
+				cargo_no_pickup = true;
+				cargo_it++;
+				if ( cargo_it != cargos.end())
+					ship_pos = cargo_it->pos;
+				else
+					cargo_it = cargos.begin();
+
+				// ship_pos = JumpToNextObject(ship_pos);
+			}
+
+		} // endif: state_GAMEON ---
+
+
 
 
 		// Intro state, Set up a new game
@@ -441,8 +485,44 @@ public:
 			}
 		}
 
+
+#ifdef DEBUG_PRINT
+		// show center of screen crossheir
+		olc::vi2d screen_center{ScreenWidth()/2, ScreenHeight()/2};
+		DrawLine(screen_center-olc::vi2d{5,5}, screen_center+olc::vi2d{5,5},olc::RED);
+		DrawLine(screen_center-olc::vi2d{-5,5}, screen_center+olc::vi2d{-5,5},olc::RED);
+		ss.str(""); ss << "(" << screen_center.x << "," << screen_center.y << ")";
+		DrawString(screen_center, ss.str(),olc::RED);
+#endif
+
+
+
 		return true;
+	} // end Update ---
+
+
+	olc::vf2d JumpToNextObject(olc::vf2d s_pos) {
+		if (cargos.size() > 0) {
+			std::cout << "csize: " << cargos.size() << " ";
+
+			for (int i = 0; i < cargos.size(); ++i) {
+				if ( s_pos == cargos[i].pos) {
+					if ( i >= cargos.size()-1) {
+						std::cout << "[0].pos: " << cargos[0].pos << "\n";
+						return cargos[0].pos;
+					}
+					else {
+						std::cout << "[" << i+1 << "].pos: " << cargos[i+1].pos << "\n";
+						return cargos[i+1].pos;
+					}
+				}
+			}
+		}
 	}
+
+
+
+
 
 	void RestartGame() {
 		game_state = state::INTRO;
@@ -577,7 +657,7 @@ public:
 
 
 
-// #define NEWFUNC_DrawGameMapOnScreen
+#define NEWFUNC_DrawGameMapOnScreen
 #ifdef NEWFUNC_DrawGameMapOnScreen
 	void DrawGameMapOnScreen( olc::vf2d ship_pos) {
 		float cx;
@@ -680,15 +760,14 @@ public:
 
 	}
 
-// #define NEWFUNC_DrawShipOnScreen
-
+#define NEWFUNC_DrawShipOnScreen
 #ifdef NEWFUNC_DrawShipOnScreen
 	// proppellar size is the named size of the craft
 	void DrawShipOnScreen( olc::vi2d sos_pos,int propellar_size) {
 		float engineOffset = propellar_size*2.5f;
-		float offset = propellar_size*2.5f + propellar_size/2;
+		float offset = engineOffset/2;
 	
-		olc::vf2d center_offset = sos_pos + olc::vf2d{offset, offset};
+		olc::vf2d center_offset = sos_pos - olc::vf2d{offset, offset};
 
 		DrawCircle(center_offset,propellar_size); // engine 1
 		FillCircle(center_offset,int(throttle[0]*propellar_size),olc::RED);  // power level
@@ -704,7 +783,7 @@ public:
 
 
 		// cargo bay
-		DrawRect(center_offset, {10,10});
+		DrawRect(sos_pos-olc::vf2d{5,5}, {10,10}, olc::RED);
 	}
 #else
 	void DrawShipOnScreen( olc::vi2d sos_pos,int engineSize) {
