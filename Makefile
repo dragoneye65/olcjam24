@@ -6,8 +6,8 @@ DEBUG		:= -ggdb3
 STATIC		:= -Bstatic -static-libgcc -static-libstdc++
 SHARED		:=
 
-#BUILD		:= $(DEBUG)
-BUILD		:= $(RELEASE)
+BUILD		:= $(DEBUG)
+#BUILD		:= $(RELEASE)
 
 #LINKTYPE	:= $(STATIC)
 LINKTYPE	:= $(SHARED)

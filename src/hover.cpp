@@ -61,7 +61,7 @@ public:
 
 	float ship_angle_x = 0.0;
 	float ship_angle_y = 0.0;
-	olc::vf2d ship_cap_vel_xy =  { 60.0, 60.0};
+	olc::vf2d ship_cap_vel_xy =  { 100.0, 100.0};
 	olc::vf2d ship_pos;
 	float velocity_scale = 5000.0;
 
@@ -92,6 +92,11 @@ public:
 	std::string tmpstr;
 	std::stringstream ss;
 
+	// timers
+	bool timer_descent_vel_alert_active = false;
+	bool timer_toggle_on_state = false;
+	// float timer_start_time = 0.0;
+	// bool timer_start_once = true;
 public:
 
 	olc::vi2d GetCharMapDimentions() {
@@ -154,7 +159,20 @@ public:
 
 		InitGameMap();
 		ship_pos = startpos;
+
+		
+
 		return true;
+	}
+
+		bool isToggled = false;
+	std::chrono::steady_clock::time_point lastToggleTime;
+
+	void TimerUpdateTrigger(float fElapsedTime, float time_until_trigger) {
+		if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastToggleTime).count() >= time_until_trigger) {
+			timer_toggle_on_state = !timer_toggle_on_state;
+			lastToggleTime = std::chrono::steady_clock::now();
+		}
 	}
 
 	bool OnUserUpdate(float fElapsedTime) override
@@ -162,6 +180,15 @@ public:
 		// called once per frame
 		mouse_pos_old = mouse_pos;
 		mouse_pos = GetMousePos();
+
+		TimerUpdateTrigger(fElapsedTime, 500);
+/*
+		if (timer_toggle_on_state) {
+			timer_descent_vel_alert_active = true;
+		} else {
+			timer_descent_vel_alert_active = false;
+    	}
+*/
 
 		Clear(olc::VERY_DARK_BLUE);
 
@@ -171,6 +198,7 @@ public:
 		}
 		
 		if ( game_state == state::GAMEON) {
+
 			// draw velocity
 			int vel_pos_x = ship_on_screen_pos.x - 50;
 			int vel_pos_y = ship_on_screen_pos.y + 110;
@@ -183,6 +211,13 @@ public:
 				DrawString( { vel_pos_x + i * 55 + offx,vel_pos_y}, tmpstr, olc::YELLOW); 
 			}
 
+
+			// Velocity descent warning light
+			if (timer_descent_vel_alert_active) {
+				if (timer_toggle_on_state) {
+					FillRect({500-1*8,190}, {5*8, 10}, olc::RED);
+				}
+			}
 			tmpstr = "Alt";
 			DrawString({500,190},tmpstr,olc::GREY); 
 			ss.str(""); ss << std::setw(3) << int(altitude);
@@ -335,16 +370,26 @@ public:
 			tmpstr = ss.str();
 			DrawString({110,10},tmpstr,olc::RED);
 
+			timer_descent_vel_alert_active = false;
+			// show alert if decending dangerously fast
+			if ( int(altitude) != 0 && ship_velocity[2]*velocity_scale < (game_critical_landing_velocity+40.0f)) {
+				timer_descent_vel_alert_active = true;
+			}
+
 			// check z velocity on "landing"
 			if ( int(altitude) == 0 && last_velocity_before_crashlanding < game_critical_landing_velocity) {
 				game_state = state::THEEND;
 				ship_crashed = true;
 			}
 
-			if (ship_crashed) 
+			// debug: check if debug ship_crash is set
+			if (ship_crashed)
 				game_state = state::THEEND;
-		}
 
+		} // endif: state_GAMEON
+
+
+		// Intro state, Set up a new game
 		if ( game_state == state::INTRO) {
 			player_deliveries = 0;
 			ship_crashed = false;
@@ -360,16 +405,33 @@ public:
 				game_state = state::GAMEON;
 		}
 
+		// Game ended, or user aborted
 		if ( game_state == state::THEEND) {
 			EndGame();
 
-			if ( GetKey(olc::Key::SPACE).bReleased || GetKey(olc::Key::ENTER).bReleased) {
-				game_state = state::INTRO;
-				InitGameMap();
-				ship_pos = startpos;
+			// SPACE: continue if not crashed, restarts if crashed
+			if ( GetKey(olc::Key::SPACE).bReleased) {
+				if (!ship_crashed)
+					game_state = state::GAMEON;
+				else
+					RestartGame();
+
 			}
+
+			// ENTER: restart
+			if ( GetKey(olc::Key::ENTER).bReleased ) {
+				RestartGame();
+			}
+
 		}
 
+
+		// Debug: <SHIFT-C> toggle ship_crash
+		if ( GetKey(olc::Key::SHIFT).bHeld) 
+			if ( GetKey(olc::Key::C).bReleased) ship_crashed = !ship_crashed;
+		
+
+		// Escape to THEEND, or quit if pressed while in THEEND state
 		if ( GetKey(olc::Key::ESCAPE).bPressed) {
 			if ( game_state == state::THEEND) {
 				return false;
@@ -378,7 +440,14 @@ public:
 				game_state = state::THEEND;
 			}
 		}
+
 		return true;
+	}
+
+	void RestartGame() {
+		game_state = state::INTRO;
+		InitGameMap();
+		ship_pos = startpos;
 	}
 
 	void Instructions( olc::vi2d pos) {
@@ -408,25 +477,30 @@ public:
 		FillRect({offsx-1, asdf-1 }, {300+2, 200+2}, olc::VERY_DARK_GREY);
 		DrawRect({offsx, asdf}, {300, 200}, olc::RED);
 
-		if (last_velocity_before_crashlanding <= game_critical_landing_velocity) {
+//		if (last_velocity_before_crashlanding <= game_critical_landing_velocity) {
+		if (ship_crashed) {
 			DrawString( {offsx+10, asdf+offsy*1}, "Oh holy pancake...", olc::GREY);
-			DrawString( {offsx+10, asdf+offsy*2}, "What a spectacular crash!", olc::GREY);
-			DrawString( {offsx+10, asdf+offsy*3}, "Groundbreaking velocity:", olc::GREY);
+			DrawString( {offsx+10, asdf+offsy*5}, "What a spectacular crash!", olc::GREY);
+			DrawString( {offsx+10, asdf+offsy*6}, "Groundbreaking velocity:", olc::GREY);
 			ss.str(""); ss << last_velocity_before_crashlanding;
-			DrawString( {offsx+10+28*8, asdf+offsy*3}, ss.str(), olc::RED);
+			DrawString( {offsx+10+28*8, asdf+offsy*6}, ss.str(), olc::RED);
+			DrawString( {offsx+10, asdf+offsy*18}, "SPACE/ENTER to restart, ESC to quit", olc::RED);
 		} else {
-			DrawString( {offsx+10, asdf+offsy*1}, "I am sorry to see you go...", olc::GREY);
-			DrawString( {offsx+10, asdf+offsy*2}, "  Hope you had fun! L8r o7 ", olc::GREY);
+			DrawString( {offsx+10, asdf+offsy*1}, "        User aborted!", olc::GREY);
+			DrawString( {offsx+10, asdf+offsy*7}, "I am sorry to see you go...", olc::GREY);
+			DrawString( {offsx+10, asdf+offsy*8}, "  Hope you had fun! L8r o7 ", olc::GREY);
+			DrawString( {offsx+10, asdf+offsy*16}, " SPACE (Continue)", olc::GREEN);
+			DrawString( {offsx+10, asdf+offsy*17}, " ENTER (Restart)", olc::YELLOW);
+			DrawString( {offsx+10, asdf+offsy*18}, " ESC   (quit)", olc::RED);
 		}
-		DrawString( {offsx+10, asdf+offsy*4}, "Score: ", olc::GREY);
+		DrawString( {offsx+10, asdf+offsy*3}, "Score: ", olc::GREY);
 		ss.str(""); ss << std::setw(0) << player_points;
-		DrawString( {offsx+10+9*8, asdf+offsy*4}, ss.str(), olc::GREEN);
+		DrawString( {offsx+10+9*8, asdf+offsy*3}, ss.str(), olc::GREEN);
 
-		DrawString( {offsx+10, asdf+offsy*5}, "Successfull deliveries: ", olc::GREY);
+		DrawString( {offsx+10+20*8, asdf+offsy*3}, "Runs: ", olc::GREY);
 		ss.str(""); ss << std::setw(0) << player_deliveries;
-		DrawString( {offsx+10+24*8, asdf+offsy*5}, ss.str(), olc::GREEN);
+		DrawString( {offsx+10+27*8, asdf+offsy*3}, ss.str(), olc::GREEN);
 		
-		DrawString( {offsx+10, asdf+offsy*18}, " SPACE/ENTER to restart, ESC to quit", olc::RED);
 		
 	}
 
@@ -501,12 +575,44 @@ public:
 		}
 	}
 
+
+
+// #define NEWFUNC_DrawGameMapOnScreen
+#ifdef NEWFUNC_DrawGameMapOnScreen
 	void DrawGameMapOnScreen( olc::vf2d ship_pos) {
 		float cx;
 		float cy;
-		float sx,sy;
-		float scale_alt;
-		float scale_factor = 1.5*(max_altitude/(altitude+10));
+		olc::Pixel col = olc::GREEN;
+
+		for (int i = 0; i < cargos.size(); ++i) {
+			cx = (cargos[i].pos.x - ship_pos.x + ship_on_screen_pos.x);
+			cy = (cargos[i].pos.y - ship_pos.y + ship_on_screen_pos.y);
+
+			switch (cargos[i].cargoType)
+			{
+			case 'd':
+				col = olc::RED;
+				break;
+			default:
+				col = olc::GREEN;	
+				break;
+			}			
+
+			// don't draw the object if it is outside the clip radius
+			if ( sqrt( (ship_pos.x-cargos[i].pos.x)*(ship_pos.x-cargos[i].pos.x) + (ship_pos.y-cargos[i].pos.y)*(ship_pos.y-cargos[i].pos.y)) < game_clip_objects_radius) {
+				DrawCircle( {int (cx),int(cy)} ,10, col);
+				ss.str(""); ss << std::setw(1) << static_cast<char>(cargos[i].cargoType);
+				DrawString( {int(cx)-3,int(cy)-3},ss.str());
+			}
+	    }
+	}
+#else
+	void DrawGameMapOnScreen( olc::vf2d ship_pos) {
+		float cx;
+		float cy;
+		// float sx,sy;
+		// float scale_alt;
+		// float scale_factor = 1.5*(max_altitude/(altitude+10));
 
 		int offsett = 10;
 
@@ -534,6 +640,7 @@ public:
 			}
 	    }
 	}
+#endif
 
 	void DrawMinimap( olc::vi2d mm_pos, olc::vf2d ship_pos) {
 		float scale_x = float(minimap_size.x)/world_max.x;
@@ -573,6 +680,33 @@ public:
 
 	}
 
+// #define NEWFUNC_DrawShipOnScreen
+
+#ifdef NEWFUNC_DrawShipOnScreen
+	// proppellar size is the named size of the craft
+	void DrawShipOnScreen( olc::vi2d sos_pos,int propellar_size) {
+		float engineOffset = propellar_size*2.5f;
+		float offset = propellar_size*2.5f + propellar_size/2;
+	
+		olc::vf2d center_offset = sos_pos + olc::vf2d{offset, offset};
+
+		DrawCircle(center_offset,propellar_size); // engine 1
+		FillCircle(center_offset,int(throttle[0]*propellar_size),olc::RED);  // power level
+
+		DrawCircle({center_offset.x,int(center_offset.y+engineOffset)},propellar_size); // engine 2
+		FillCircle({center_offset.x,int(center_offset.y+engineOffset)},int(throttle[1]*propellar_size), olc::RED); // engine 2
+
+		DrawCircle({int(center_offset.x+engineOffset),int(center_offset.y+engineOffset)},propellar_size); // engine 3
+		FillCircle({int(center_offset.x+engineOffset),int(center_offset.y+engineOffset)},int(throttle[2]*propellar_size), olc::RED); // engine 3
+		
+		DrawCircle({int(center_offset.x+engineOffset),center_offset.y},propellar_size); // engine 4
+		FillCircle({int(center_offset.x+engineOffset),center_offset.y},int(throttle[3]*propellar_size), olc::RED); // engine 4
+
+
+		// cargo bay
+		DrawRect(center_offset, {10,10});
+	}
+#else
 	void DrawShipOnScreen( olc::vi2d sos_pos,int engineSize) {
 		float engineOffset = engineSize*2.5;
 		DrawCircle(sos_pos,engineSize); // engine 1
@@ -587,6 +721,9 @@ public:
 		DrawCircle({int(sos_pos.x+engineOffset),sos_pos.y},engineSize); // engine 4
 		FillCircle({int(sos_pos.x+engineOffset),sos_pos.y},int(throttle[3]*engineSize), olc::RED); // engine 4
 	}
+#endif
+
+
 
 };
 
