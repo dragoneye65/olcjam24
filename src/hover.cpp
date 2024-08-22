@@ -79,8 +79,8 @@ public:
 	olc::vi2d ship_on_screen_pos;
 
 	// minimap
-	olc::vi2d minimap_size = { 150, 150 };
-	olc::vi2d minimap_position = { 0 , 0 };
+	olc::vi2d minimap_size = { 80, 80 };
+	olc::vi2d minimap_position;
 	struct cargo {
 		olc::vf2d pos;			// position in world space
 		int cargoType;			// type of cargo: 
@@ -164,7 +164,8 @@ public:
 		charmap_dim = GetCharMapDimentions();
 
 		ship_on_screen_pos = { ScreenWidth()/2,ScreenHeight()/2};
-		minimap_position = {ScreenWidth()-minimap_size.x-1, 1};
+
+		minimap_position = {ScreenWidth()-minimap_size.x-2, 10};
 
 		InitGameMap();
 		ship_pos = startpos;
@@ -686,6 +687,26 @@ public:
 			}
 	    }
 	}
+
+	void DrawMinimap( olc::vi2d mm_pos, olc::vf2d ship_pos) {
+		float scale_x = float(minimap_size.x)/world_max.x;
+		float scale_y = float(minimap_size.y)/world_max.y;
+
+		// draw cargos
+		for (int i = 0; i < cargos.size(); ++i) {
+        	FillCircle({mm_pos.x+ int(cargos[i].pos.x*scale_x), mm_pos.y+ int(cargos[i].pos.y*scale_y)}, 2, olc::GREEN);
+	    }
+
+		// draw dropzone
+		FillCircle( { mm_pos.x+ int( dropzone.x*scale_x), mm_pos.y+ int( dropzone.y*scale_y) }, 2, olc::RED);
+
+		// draw ship
+		DrawCircle( { mm_pos.x+ int( (ship_pos.x)*scale_x), mm_pos.y+ int( (ship_pos.y)*scale_y) }, 3, olc::RED);
+
+		// minimap boundary
+		DrawRect( {mm_pos.x-4,mm_pos.y-4}, {minimap_size.x+3,minimap_size.y+1}, olc::YELLOW);
+	}
+
 #else
 	void DrawGameMapOnScreen( olc::vf2d ship_pos) {
 		float cx;
@@ -720,7 +741,6 @@ public:
 			}
 	    }
 	}
-#endif
 
 	void DrawMinimap( olc::vi2d mm_pos, olc::vf2d ship_pos) {
 		float scale_x = float(minimap_size.x)/world_max.x;
@@ -740,6 +760,10 @@ public:
 		// minimap boundary
 		DrawRect( {mm_pos.x,mm_pos.y}, {minimap_size.x,minimap_size.y}, olc::YELLOW);
 	}
+
+#endif
+
+
 
 	void DrawAltitude( int x, int y) {
 		int BarHeight = 100;
