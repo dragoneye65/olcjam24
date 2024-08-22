@@ -44,12 +44,10 @@ public:
 
 	// ship, 4 engines 
 	float throttle[4] = {0.0, 0.0, 0.0, 0.0 };				// 0-100% [0.0 - 1.0]
-//	float engine_power_output[4] = { 0.0, 0.0, 0.0, 0.0 };	// In watts
 	float ship_weight = 900.0;								// grams
 	float ship_velocity[3] = { 0.0, 0.0, 0.0 };				// x,y,z
 	float last_velocity_before_crashlanding = 0.0;			// checking for pancake 
 	float ship_response = 0.6;
-//	float ship_throttle_falloff = 0.20;
 	float ship_avr_throttle = 0.0;
 	float ship_idle_throttle = 0.01;
 	float ship_max_thrust = 4000.0;							// grams
@@ -117,12 +115,7 @@ public:
 		// scan the rows
 		char ch;
 		for ( int r = 0; game_map[r] != nullptr; r++) {
-		// for ( int r = 0; r < 10; r++) {
-			// scan the columns
-			
 			for ( int c = 0; game_map[r][c] != '\0'; c++) {
-			// for ( int c = 0; c < 16; c++) {
-				// std::cout << game_map[r][c];
 				switch (ch = game_map[r][c])
 				{
 				case '*':	// startingpos
@@ -155,7 +148,6 @@ public:
 	{
 		// Called once at the start, so create things here
 		charmap_dim = GetCharMapDimentions();
-		// std::cout << charmap_dim.x << ", " << charmap_dim.y << "\n";
 
 		ship_on_screen_pos = { ScreenWidth()/3,ScreenHeight()/3};
 		minimap_position = {ScreenWidth()-minimap_size.x-1, 1};
@@ -177,28 +169,6 @@ public:
 			ss << std::fixed << std::setprecision(2);
 			DrawString({ ScreenWidth()/2-10*16/2,24},"Hover run",olc::GREY, 2);
 		}
-
-/*		
-		for ( int i = 0; i < 4; i++) {
-			ss.str("");
-			tmpstr = "Throttle " + std::to_string(i+1) + ": ";
-			DrawString({20,30+i*10},tmpstr,olc::GREY); 
-			ss << throttle[ i]; 
-			tmpstr = ss.str();
-			DrawString({120,30+i*10},tmpstr,olc::YELLOW); 
-		}
-*/
-
-/*
-		for ( int i = 0; i < 4; i++) {
-			ss.str("");
-			tmpstr = "EnginePwr " + std::to_string(i+1) + ": ";
-			DrawString({200,30+i*10},tmpstr,olc::GREY); 
-			ss <<  engine_power_output[ i]; 
-			tmpstr = ss.str();
-			DrawString({300,30+i*10},tmpstr,olc::YELLOW); 
-		}
-*/
 		
 		if ( game_state == state::GAMEON) {
 			// draw velocity
@@ -223,18 +193,6 @@ public:
 			ship_angle_x = M_PI_2 * (((throttle[0]+throttle[1] ) - (throttle[2]+throttle[3] ))/2); 
 			ship_angle_y = M_PI_2 * ((throttle[0]+throttle[3] ) - (throttle[1]+throttle[2] ))/2;
 
-	/*
-			tmpstr = "Angle X: ";
-			ss.str(""); ss << ship_angle_x;
-			DrawString({20,110},tmpstr,olc::GREY); 
-			tmpstr = ss.str();
-			DrawString({120,110},tmpstr,olc::YELLOW); 
-			tmpstr = "Angle Y: ";
-			ss.str(""); ss << ship_angle_y;
-			DrawString({220,110},tmpstr,olc::GREY); 
-			tmpstr = ss.str();
-			DrawString({300,110},tmpstr,olc::YELLOW); 
-	*/
 			// power to all engines
 			if ( GetKey(olc::Key::UP).bHeld) {
 				for ( int i = 0; i < 4; i++) {
@@ -313,20 +271,9 @@ public:
 			}
 
 
-			// throttle falloff needed?
-			/*
-			for ( int i = 0; i < 4; i++) 
-				throttle[i] -= fElapsedTime * ship_throttle_falloff;
-			for ( int i = 0; i < 4; i++) {
-				if ( throttle[i] < ship_idle_throttle) throttle[i] = ship_idle_throttle;
-				if ( throttle[i] > 1.0) throttle[i] = 1.0;
-			}
-			*/
 
 			// calculate throttle average from engines
 			ship_avr_throttle = (throttle[0] + throttle[1] + throttle[2] + throttle[3]) / 4 ;
-	//		for ( int i = 0; i < 4; i++) engine_power_output[i] = throttle[i]*ship_max_thrust/4;
-
 			// thrust
 			ship_velocity[2] += fElapsedTime * 0.000005* (ship_max_thrust) * cos(ship_angle_x)*cos(ship_angle_y)*ship_avr_throttle;
 			// Gravity
@@ -341,7 +288,6 @@ public:
 			altitude += ship_velocity[2];
 
 			// cap ship velocity in xy
-			// todo: does not work
 			if ((ship_velocity[0]*velocity_scale) > ship_cap_vel_xy.x) 	ship_velocity[0] = ship_cap_vel_xy.x/velocity_scale;
 			if ((ship_velocity[0]*velocity_scale) < -ship_cap_vel_xy.x)	ship_velocity[0] = -(ship_cap_vel_xy.x/velocity_scale);
 			if ((ship_velocity[1]*velocity_scale) > ship_cap_vel_xy.y) 	ship_velocity[1] = ship_cap_vel_xy.y/velocity_scale;
@@ -352,21 +298,12 @@ public:
 
 
 			// limit the ship inside the map area , bounch back
-			// todo: check if velocity is damaging to the ship
 			if ( ship_pos.x < 0) { ship_pos.x = 0.0; ship_velocity[0] *= -1.0; }
 			if ( ship_pos.x > 500-40) { ship_pos.x = 500.0-40; ship_velocity[0] *= -1.0;}
 			if ( ship_pos.y < 0) { ship_pos.y = 0.0; ship_velocity[1] *= -1.0;}
 			if ( ship_pos.y > 500-40) { ship_pos.y = 500.0-40; ship_velocity[1] *= -1.0;}
-	/*
-			if ( ship_pos.x < 0) { ship_pos.x = 0.0; ship_velocity[0] = 0.0; }
-			if ( ship_pos.x > 500) { ship_pos.x = 500.0; ship_velocity[0] = 0.0;}
-			if ( ship_pos.y < 0) { ship_pos.y = 0.0; ship_velocity[1] = 0.0;}
-			if ( ship_pos.y > 500) { ship_pos.y = 500.0; ship_velocity[1] = 0.0;}
-	*/
 
-
-	//		tmpstr = "ShipPos: ";
-	//		DrawString({20,130},tmpstr,olc::GREY); 
+			// Show the position to the ship under minimap
 			ss.str(""); ss << ship_pos.x; tmpstr = ss.str();
 			DrawString({minimap_position.x+20,minimap_position.y+minimap_size.y+2},tmpstr,olc::YELLOW); 
 			ss.str(""); ss << ship_pos.y; tmpstr = ss.str();
@@ -378,9 +315,6 @@ public:
 				ship_velocity[2] = 0.0; // z
 				}
 			if ( altitude < 0.0) {
-				// if velocity is grater than the structural damage, then crash/end life
-				// if ( ship_velocity[2] > ship_max_impact_force_exceeded) then die
-
 				altitude = 0.0; 
 				ship_velocity[0] = 0.0; // x
 				ship_velocity[1] = 0.0; // y
@@ -401,7 +335,7 @@ public:
 			tmpstr = ss.str();
 			DrawString({110,10},tmpstr,olc::RED);
 
-			// check z velocity
+			// check z velocity on "landing"
 			if ( int(altitude) == 0 && last_velocity_before_crashlanding < game_critical_landing_velocity) {
 				game_state = state::THEEND;
 				ship_crashed = true;
@@ -410,7 +344,6 @@ public:
 			if (ship_crashed) 
 				game_state = state::THEEND;
 		}
-
 
 		if ( game_state == state::INTRO) {
 			player_deliveries = 0;
@@ -427,7 +360,6 @@ public:
 				game_state = state::GAMEON;
 		}
 
-
 		if ( game_state == state::THEEND) {
 			EndGame();
 
@@ -437,7 +369,6 @@ public:
 				ship_pos = startpos;
 			}
 		}
-
 
 		if ( GetKey(olc::Key::ESCAPE).bPressed) {
 			if ( game_state == state::THEEND) {
@@ -579,28 +510,9 @@ public:
 
 		int offsett = 10;
 
-		// draw dropzone
-//		sx = (dropzone.x - ship_pos.x + ship_on_screen_pos.x+40) * scale_factor;
-//		sy = (dropzone.y - ship_pos.y + ship_on_screen_pos.y+40) * scale_factor;
-//       	DrawCircle( {int (sx),int(sy)} ,10, olc::RED);
-//		DrawString( {sx-3,sy-3},"D");
-
-
 		olc::Pixel col = olc::GREEN;
-/*
-		std::vector<olc::vf2d> pos_translate;
-		olc::vf2d tmppos;
+
 		for (int i = 0; i < cargos.size(); ++i) {
-			tmppos.x = cargos[i].pos.x -  ship_pos.x;
-			tmppos.y = cargos[i].pos.y -  ship_pos.y;
-			tmppos.x *= scale_factor;
-			tmppos.y *= scale_factor;
-			pos_translate.push_back(tmppos);
-		}
-*/
-		for (int i = 0; i < cargos.size(); ++i) {
-			// cx = pos_translate[i].x+ship_pos.x+32;
-			// cy = pos_translate[i].y+ship_pos.y-43;
 			cx = (cargos[i].pos.x - ship_pos.x + ship_on_screen_pos.x+40);
 			cy = (cargos[i].pos.y - ship_pos.y + ship_on_screen_pos.y+40);
 
@@ -614,11 +526,6 @@ public:
 				break;
 			}			
 
-			// draw objects
-			// scale the radius
-			// int radius = int(2.0*scale_factor);
-			// if ( radius == 0) radius = 1;
-
 			// don't draw the object if it is outside the clip radius
 			if ( sqrt( (ship_pos.x-cargos[i].pos.x)*(ship_pos.x-cargos[i].pos.x) + (ship_pos.y-cargos[i].pos.y)*(ship_pos.y-cargos[i].pos.y)) < game_clip_objects_radius) {
 				DrawCircle( {int (cx),int(cy)} ,10, col);
@@ -631,7 +538,6 @@ public:
 	void DrawMinimap( olc::vi2d mm_pos, olc::vf2d ship_pos) {
 		float scale_x = float(minimap_size.x)/world_max.x;
 		float scale_y = float(minimap_size.y)/world_max.y;
-
 
 		// draw cargos
 		for (int i = 0; i < cargos.size(); ++i) {

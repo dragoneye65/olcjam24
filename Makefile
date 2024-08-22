@@ -45,7 +45,8 @@ run: all
 	./$(BIN)/$(EXECUTABLE)
 
 clean:
-	-rm $(BIN)/* $(OBJ)/*.o
+	-rm $(BIN)/$(EXECUTABLE) $(OBJ)/*.o
+#	-rm $(BIN)/* $(OBJ)/*.o
 
 # Compile only
 $(OBJ)/%.o : $(SRC)/%.cpp $(DEPENDENCIES)
