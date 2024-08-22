@@ -4,7 +4,7 @@
 
 
 
-#define DEBUG_PRINT
+// #define DEBUG_PRINT
 
 // *: starting position
 // u: unloading pad
@@ -52,7 +52,7 @@ public:
 	float ship_weight = 900.0;								// grams
 	float ship_velocity[3] = { 0.0, 0.0, 0.0 };				// x,y,z
 	float last_velocity_before_crashlanding = 0.0;			// checking for pancake 
-	float ship_response = 0.6;
+	float ship_response = 1.6;								// respons factor
 	float ship_avr_throttle = 0.0;
 	float ship_idle_throttle = 0.01;
 	float ship_max_thrust = 4000.0;							// grams
@@ -219,6 +219,7 @@ public:
 		
 		if ( game_state == state::GAMEON) {
 
+#ifdef DEBUG_PRINT
 			// draw velocity
 			int vel_pos_x = ship_on_screen_pos.x - 50;
 			int vel_pos_y = ship_on_screen_pos.y + 110;
@@ -230,7 +231,7 @@ public:
 				if ( i != 2 ) tmpstr += ", "; else tmpstr += " }";
 				DrawString( { vel_pos_x + i * 55 + offx,vel_pos_y}, tmpstr, olc::YELLOW); 
 			}
-
+#endif
 
 			// Velocity descent warning light
 			if (timer_descent_vel_alert_active) {
@@ -354,16 +355,16 @@ public:
 
 			// limit the ship inside the map area , bounch back
 			if ( ship_pos.x < 0) { ship_pos.x = 0.0; ship_velocity[0] *= -1.0; }
-			if ( ship_pos.x > 500-40) { ship_pos.x = 500.0-40; ship_velocity[0] *= -1.0;}
+			if ( ship_pos.x > 500) { ship_pos.x = 500.0; ship_velocity[0] *= -1.0;}
 			if ( ship_pos.y < 0) { ship_pos.y = 0.0; ship_velocity[1] *= -1.0;}
-			if ( ship_pos.y > 500-40) { ship_pos.y = 500.0-40; ship_velocity[1] *= -1.0;}
+			if ( ship_pos.y > 500) { ship_pos.y = 500.0; ship_velocity[1] *= -1.0;}
 
 #ifdef DEBUG_PRINT
 			// Show the position to the ship under minimap
 			ss.str(""); ss << ship_pos.x; tmpstr = ss.str();
 			DrawString({minimap_position.x+20,minimap_position.y+minimap_size.y+2},tmpstr,olc::YELLOW); 
 			ss.str(""); ss << ship_pos.y; tmpstr = ss.str();
-			DrawString({minimap_position.x+80,minimap_position.y+minimap_size.y+2},tmpstr,olc::YELLOW); 
+			DrawString({minimap_position.x+20,minimap_position.y+minimap_size.y+12},tmpstr,olc::YELLOW); 
 #endif
 
 			// Altitude check limits
@@ -378,7 +379,9 @@ public:
 				ship_velocity[2] = 0.0; // z
 				}
 
-			DrawShipOnScreen( ship_on_screen_pos, 10); // x,y,engine size
+			// Scale the ship size relative to altitude
+			// Draw ship on screen and scale it relative to altitude
+			DrawShipOnScreen( ship_on_screen_pos, 10,20,altitude); // x,y,engine minsize, maxsize, altitude
 
 #ifdef DEBUG_PRINT
 			// show ship real position
@@ -787,27 +790,33 @@ public:
 #define NEWFUNC_DrawShipOnScreen
 #ifdef NEWFUNC_DrawShipOnScreen
 	// proppellar size is the named size of the craft
-	void DrawShipOnScreen( olc::vi2d sos_pos,int propellar_size) {
-		float engineOffset = propellar_size*2.5f;
+	void DrawShipOnScreen( olc::vi2d sos_pos,int ship_min_size, int ship_max_size, float altitude) {
+		float altscale = altitude/max_altitude;
+		float ship_size = ship_min_size + ship_max_size*altscale; // scale this between min and max relative to altitude ...
+		float engineOffset = ship_size*2.5f;
 		float offset = engineOffset/2;
 	
 		olc::vf2d center_offset = sos_pos - olc::vf2d{offset, offset};
 
-		DrawCircle(center_offset,propellar_size); // engine 1
-		FillCircle(center_offset,int(throttle[0]*propellar_size),olc::RED);  // power level
+		DrawCircle(center_offset,ship_size); // engine 1
+		FillCircle(center_offset,int(throttle[0]*ship_size),olc::RED);  // power level
 
-		DrawCircle({center_offset.x,int(center_offset.y+engineOffset)},propellar_size); // engine 2
-		FillCircle({center_offset.x,int(center_offset.y+engineOffset)},int(throttle[1]*propellar_size), olc::RED); // engine 2
+		DrawCircle({center_offset.x,int(center_offset.y+engineOffset)},ship_size); // engine 2
+		FillCircle({center_offset.x,int(center_offset.y+engineOffset)},int(throttle[1]*ship_size), olc::RED); // engine 2
 
-		DrawCircle({int(center_offset.x+engineOffset),int(center_offset.y+engineOffset)},propellar_size); // engine 3
-		FillCircle({int(center_offset.x+engineOffset),int(center_offset.y+engineOffset)},int(throttle[2]*propellar_size), olc::RED); // engine 3
+		DrawCircle({int(center_offset.x+engineOffset),int(center_offset.y+engineOffset)},ship_size); // engine 3
+		FillCircle({int(center_offset.x+engineOffset),int(center_offset.y+engineOffset)},int(throttle[2]*ship_size), olc::RED); // engine 3
 		
-		DrawCircle({int(center_offset.x+engineOffset),center_offset.y},propellar_size); // engine 4
-		FillCircle({int(center_offset.x+engineOffset),center_offset.y},int(throttle[3]*propellar_size), olc::RED); // engine 4
+		DrawCircle({int(center_offset.x+engineOffset),center_offset.y},ship_size); // engine 4
+		FillCircle({int(center_offset.x+engineOffset),center_offset.y},int(throttle[3]*ship_size), olc::RED); // engine 4
 
 
 		// cargo bay
-		DrawRect(sos_pos-olc::vf2d{5,5}, {10,10}, olc::RED);
+		float bay_min_size = 10;
+		float bay_max_size = 20;
+		int bay_size = bay_min_size+bay_max_size*altscale;
+		// DrawRect(sos_pos-olc::vf2d{5,5}, {10,10}, olc::RED);
+		DrawRect(sos_pos-olc::vf2d{bay_size/2,bay_size/2}, {bay_size,bay_size}, olc::RED);
 	}
 #else
 	void DrawShipOnScreen( olc::vi2d sos_pos,int engineSize) {
