@@ -137,6 +137,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\olcPixelGameEngine.h" />
+    <ClInclude Include="inc\olcSoundWaveEngine.h" />
     <ClInclude Include="inc\pge.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

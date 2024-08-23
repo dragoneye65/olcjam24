@@ -15,15 +15,28 @@ public:
 	olc::sound::Wave wave_crash;
 	olc::sound::Wave wave_pickup;
 	olc::sound::Wave wave_drop;
+	olc::sound::Wave wave_purge;
 	olc::sound::PlayingWave it_altitude_alert;
 	olc::sound::PlayingWave it_crash;
 	olc::sound::PlayingWave it_pickup;
 	olc::sound::PlayingWave it_drop;
+	olc::sound::PlayingWave it_purge;
+
+	olc::Sprite* spr_orb = nullptr;	olc::Decal* dec_orb = nullptr;
+	olc::Sprite* spr_chest = nullptr;	olc::Decal* dec_chest = nullptr;
+	olc::Sprite* spr_startpad = nullptr;	olc::Decal* dec_startpad = nullptr;
+	olc::Sprite* spr_bg_tile = nullptr;	olc::Decal* dec_bg_tile = nullptr;
+	olc::Sprite* spr_ship = nullptr;	olc::Decal* dec_ship = nullptr;
+
+	// for the warped decal 
+	std::array<olc::vf2d, 4> points;
+	olc::vf2d* pSelected = nullptr;
 
 	bool sound_altitude_alert_play = false;
 	bool sound_crash_play = false;
-	bool sound_pickup_play = false;
 	bool sound_drop_play = false;
+	bool sound_pickup_play = false;
+	bool sound_purge_play = false;
 
 	// first char based game map, don't need it, can generate it
 	std::string game_map;
@@ -192,6 +205,14 @@ public:
 		wave_pickup.LoadAudioWaveform( "./res/wav/pickup.wav");
 		wave_drop.LoadAudioWaveform( "./res/wav/drop.wav");
 		wave_crash.LoadAudioWaveform( "./res/wav/crash.wav");
+		wave_purge.LoadAudioWaveform("./res/wav/purge.wav");
+
+		spr_orb = new olc::Sprite("./res/img/orb.png");	dec_orb = new olc::Decal(spr_orb);
+		spr_chest = new olc::Sprite("./res/img/chest.png");	dec_chest = new olc::Decal(spr_chest);
+		spr_startpad = new olc::Sprite("./res/img/startpad.png");	dec_startpad = new olc::Decal(spr_startpad);
+		spr_bg_tile = new olc::Sprite("./res/img/background_tile.png");	dec_bg_tile = new olc::Decal(spr_bg_tile);
+		spr_ship = new olc::Sprite("./res/img/ship.png");	dec_ship = new olc::Decal(spr_ship);
+
 
 		// cargo_it = cargos.begin();
 
@@ -251,8 +272,8 @@ public:
 #endif
 
 			// calculate angle from thrust differentials (simple version) max angle = 45 deg
-			// ship_angle_x = pi_2 * (((throttle[0] + throttle[1]) - (throttle[2] + throttle[3])) / 2);
-			// ship_angle_y = pi_2 * ((throttle[0] + throttle[3]) - (throttle[1] + throttle[2])) / 2;
+			// todo: wrong way, must improve...
+			//       Should be able to have max throttle at any angle without the ship rights itself
 			ship_angle_x = pi_2 * (((throttle1 + throttle2) - (throttle3 + throttle4)) / 2);
 			ship_angle_y = pi_2 * ((throttle1 + throttle4) - (throttle2 + throttle3)) / 2;
 
@@ -348,11 +369,13 @@ public:
 			ship_velocity_y += fElapsedTime * 0.006f * sin(ship_angle_y);
 
 #ifdef DEBUG_PRINT
-			ss.str("");	ss << ship_velocity[0] * velocity_scale << ", " << ship_angle_x;
+			// Draw ship velocity and angle
+			ss.str("");	ss << ship_velocity_x * velocity_scale << ", " << ship_angle_x;
 			DrawString({ 100,100 }, ss.str());
-			ss.str("");	ss << ship_velocity[1] * velocity_scale << ", " << ship_angle_y;
+			ss.str("");	ss << ship_velocity_y * velocity_scale << ", " << ship_angle_y;
 			DrawString({ 100,110 }, ss.str());
 #endif
+
 
 			altitude += ship_velocity_z;
 
@@ -391,9 +414,8 @@ public:
 				ship_velocity_z = 0.0f; // z
 			}
 
-			// Scale the ship size relative to altitude
-			// Draw ship on screen and scale it relative to altitude
-			DrawShipOnScreen(ship_on_screen_pos, 10, 20, altitude); // x,y,engine minsize, maxsize, altitude
+			// Moved to DrawGameMapOnScreen() doe to the z-order of drawing, ship is on top, ie last
+			// DrawShipOnScreen(ship_on_screen_pos, 10, 20, altitude); // x,y,engine minsize, maxsize, altitude
 
 #ifdef DEBUG_PRINT
 			// show ship real position
@@ -404,6 +426,7 @@ public:
 
 			DrawAltitude(500, 200);
 			DrawZVelocity(530, 200, ship_velocity_z * velocity_scale);
+			DrawThrottle(560, 200); 
 			//	DrawShipAngle( ship_on_screen_pos, ship_angle_x, ship_angle_y);
 			DrawMinimap(minimap_position, ship_pos);
 			DrawGameMapOnScreen(ship_pos);
@@ -439,10 +462,10 @@ public:
 			// Show inventory and calculate weight
 			int cargo_weight = ShowInventory(inventory_pos);
 			ship_weight = ship_net_weight + cargo_weight;
-			tmpstr = "Cargo Weight: ";
-			DrawString({ 100,20 }, tmpstr, olc::GREEN);
-			ss.str(""); ss << std::setw(5) << cargo_weight;
-			DrawString({ 100 + 15 * 8,20 }, ss.str(), olc::RED);
+			tmpstr = "Cargo Weight";
+			DrawString({ 100,10 }, tmpstr, olc::GREEN);
+			ss.str(""); ss << std::setw(4) << cargo_weight;
+			DrawString({ 100+8*8, 18 }, ss.str(), olc::RED);
 
 
 			tmpstr = "Score";
@@ -504,6 +527,20 @@ public:
 			if (sound_drop_play) {
 				sound_drop_play = false;
 				wave_engine.PlayWaveform(&wave_drop);
+			}
+
+			// play the purge sound
+			if (sound_purge_play) {
+				sound_purge_play = false;
+				wave_engine.PlayWaveform(&wave_purge);
+			}
+
+			// Purge the last item from inventory
+			if (GetKey(olc::Key::P).bPressed) {
+				if (inventory.size() > 0) {
+					inventory.erase(inventory.end() - 1);
+					sound_purge_play = true;
+				}
 			}
 
 		} // endif: state_GAMEON ---
@@ -605,18 +642,19 @@ public:
 		ss << std::fixed << std::setprecision(2);
 		DrawString({ ScreenWidth() / 2 - 10 * 16 / 2,24 }, "Hover run", olc::YELLOW, 2);
 
-		DrawString({ pos.x + 10, pos.y + offsy * 1 }, "     As a drone pilot I just had to make this game.        ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * 2 }, "                If you land hard you crash!                ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * 3 }, " The game is played by watching the altitude carefully     ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * 4 }, " while running your missions gathering cargo by landing    ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * 5 }, " softly on top of them,you can pick up as many as you like ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * 6 }, "    when you feel like it just land on the red dropzone    ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * 7 }, "          and it will offload automagically.               ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * 8 }, " Be aware that when you roll and pitch you loose altitude. ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * 9 }, "    You will have to increse throttle to stay airborn.     ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy *  1 }, "     As a drone pilot I just had to make this game.        ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy *  2 }, "                If you land hard you crash!                ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy *  3 }, " The game is played by watching the altitude carefully     ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy *  4 }, " while running your missions gathering cargo by landing    ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy *  5 }, " softly on top of them,you can pick up as many as you like ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy *  6 }, "    when you feel like it just land on the red dropzone    ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy *  7 }, "          and it will offload automagically.               ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy *  8 }, " Be aware that when you roll and pitch you loose altitude. ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy *  9 }, "    You will have to increse throttle to stay airborn.     ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * 10 }, "The four engines power-level shows with red filled circles ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * 12 }, "          Use the ADWS, SPACE, UP, DOWN.  keys to play     ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * 14 }, "               Have fun!  Regards DragonEye.               ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * 12 }, "If you are too heavy, purge the last inventory item with P!", olc::MAGENTA);
+		DrawString({ pos.x + 10, pos.y + offsy * 14 }, "       Use the ADWS, SPACE, UP, DOWN, P  keys to play      ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * 16 }, "               Have fun!  Regards DragonEye.               ", olc::DARK_GREEN);
 	}
 
 
@@ -786,12 +824,135 @@ public:
 				break;
 			}
 
+			float dec_scale;
+			float center_y;
+			float center_x;
 			// don't draw the object if it is outside the clip radius
 			if (sqrt((ship_pos.x - cargos[i].pos.x) * (ship_pos.x - cargos[i].pos.x) + (ship_pos.y - cargos[i].pos.y) * (ship_pos.y - cargos[i].pos.y)) < game_clip_objects_radius) {
-				DrawCircle({ int(cx),int(cy) }, 10, col);
+				// DrawDecal(olc::vf2d{ cx - 12, cy - 13 }, dec_bg_tile, olc::vf2d{ 0.01f,0.01f });
+
+				switch (cargos[i].cargoType)
+				{
+				case '*':
+					dec_scale = 0.3f;
+					center_x = cx - (spr_startpad->width * dec_scale) / 2;
+					center_y = cy - (spr_startpad->height * dec_scale) / 2;
+					DrawDecal(olc::vf2d{ center_x, center_y }, dec_startpad, olc::vf2d{ dec_scale,dec_scale });
+					break;
+				case 'd':
+					dec_scale = 0.1f;
+					center_x = cx - (spr_chest->width * dec_scale) / 2;
+					center_y = cy - (spr_chest->height * dec_scale) / 2;
+					DrawDecal(olc::vf2d{ center_x, center_y }, dec_chest, olc::vf2d{ dec_scale,dec_scale });
+					break;
+				default:
+					// Draw the orb
+					dec_scale = 0.1f;
+					center_x = cx - (spr_orb->width * dec_scale) / 2;
+					center_y = cy - (spr_orb->height * dec_scale) / 2;
+					DrawDecal(olc::vf2d{ center_x, center_y }, dec_orb, olc::vf2d{ dec_scale,dec_scale });
+					break;
+				}
+
+				// DrawCircle({ int(cx),int(cy) }, 10, col);
 				ss.str(""); ss << std::setw(1) << static_cast<char>(cargos[i].cargoType);
 				DrawString({ int(cx) - 3,int(cy) - 3 }, ss.str());
 			}
+
+			
+			dec_scale = 0.2f + 0.4f * (altitude/max_altitude);
+			center_x = ship_on_screen_pos.x - (spr_ship->width * dec_scale) / 2;
+			center_y = ship_on_screen_pos.y - (spr_ship->height * dec_scale) / 2;
+			// draw the ship
+			// DrawDecal(olc::vf2d{ center_x, center_y }, dec_ship, olc::vf2d{ dec_scale,dec_scale });
+			// draw the propps
+
+
+			// now try tilting it using ships_angle_x
+			// when tilting forward (north), tl and tr should get narrower and bl and br should get wider
+			float tl_x = ship_on_screen_pos.x + (spr_ship->width * dec_scale) / 2;
+			float tl_y = ship_on_screen_pos.y + (spr_ship->height * dec_scale) / 2;
+
+			float bl_x = ship_on_screen_pos.x + (spr_ship->width * dec_scale) / 2;
+			float bl_y = ship_on_screen_pos.y - (spr_ship->height * dec_scale) + (spr_ship->height * dec_scale) / 2;
+
+			float br_x = ship_on_screen_pos.x - (spr_ship->width * dec_scale) + (spr_ship->width * dec_scale) / 2;
+			float br_y = ship_on_screen_pos.y - (spr_ship->height * dec_scale) + (spr_ship->height * dec_scale) / 2;
+
+			float tr_x = ship_on_screen_pos.x - (spr_ship->width * dec_scale) + (spr_ship->width * dec_scale) / 2;
+			float tr_y = ship_on_screen_pos.y + (spr_ship->height * dec_scale) / 2;
+
+			// ships_angle_y: tl and tr narrow
+			//                bl and br wider
+			/*
+			tl_x = tl_x - tl_x * dec_scale * 0.1f * sin(ship_angle_y);
+			tl_y = tl_y - tl_y * dec_scale * 0.1f * sin(ship_angle_y);
+			tr_x = tr_x + tr_x * dec_scale * 0.1f * sin(ship_angle_y);
+			tr_y = tr_y - tr_y * dec_scale * 0.1f * sin(ship_angle_y);
+
+			bl_x = bl_x + bl_x * dec_scale * 0.1f * sin(ship_angle_y);
+			br_x = br_x - br_x * dec_scale * 0.1f * sin(ship_angle_y);
+			*/
+			// tilt in y -156 -> 0
+			if (ship_angle_y <= 0) {
+				tl_x = tl_x - tl_x * sin(ship_angle_y) * dec_scale * 0.1f;
+				tl_y = tl_y + tl_y * sin(ship_angle_y) * dec_scale * 0.1f;
+				tr_x = tr_x + tr_x * sin(ship_angle_y) * dec_scale * 0.1f;
+				tr_y = tr_y + tr_y * sin(ship_angle_y) * dec_scale * 0.1f;
+
+				bl_x = bl_x + bl_x * sin(ship_angle_y) * dec_scale * 0.1f;
+				bl_y = bl_y - bl_y * sin(ship_angle_y) * dec_scale * 0.1f;
+				br_x = br_x - br_x * sin(ship_angle_y) * dec_scale * 0.1f;
+				br_y = br_y - br_y * sin(ship_angle_y) * dec_scale * 0.1f;
+			}
+			
+
+			// tilt in y 0 ->  1.56
+			if (ship_angle_y > 0) {
+				tl_x = tl_x - tl_x * sin(ship_angle_y) * dec_scale * 0.1f;
+				tl_y = tl_y - tl_y * sin(ship_angle_y) * dec_scale * 0.1f;
+				tr_x = tr_x + tr_x * sin(ship_angle_y) * dec_scale * 0.1f;
+				tr_y = tr_y - tr_y * sin(ship_angle_y) * dec_scale * 0.1f;
+
+				bl_x = bl_x + bl_x * sin(ship_angle_y) * dec_scale * 0.1f;
+				bl_y = bl_y + bl_y * sin(ship_angle_y) * dec_scale * 0.1f;
+				br_x = br_x - br_x * sin(ship_angle_y) * dec_scale * 0.1f;
+				br_y = br_y + br_y * sin(ship_angle_y) * dec_scale * 0.1f;
+			}
+
+			// tilt in x angle -1.56  -> 0
+			if (ship_angle_x <= 0) {
+				tl_x = tl_x + tl_x * sin(ship_angle_x) * dec_scale * 0.1f;
+				tl_y = tl_y - tl_y * sin(ship_angle_x) * dec_scale * 0.1f;
+				tr_x = tr_x - tr_x * sin(ship_angle_x) * dec_scale * 0.1f;
+				tr_y = tr_y + tr_y * sin(ship_angle_x) * dec_scale * 0.1f;
+
+				bl_x = bl_x + bl_x * sin(ship_angle_x) * dec_scale * 0.1f;
+				bl_y = bl_y + bl_y * sin(ship_angle_x) * dec_scale * 0.1f;
+				br_x = br_x - br_x * sin(ship_angle_x) * dec_scale * 0.1f;
+				br_y = br_y - br_y * sin(ship_angle_x) * dec_scale * 0.1f;
+			}
+			// tilt in x angle 0  -> 1.56
+			if (ship_angle_x > 0) {
+				tl_x = tl_x - tl_x * sin(ship_angle_x) * dec_scale * 0.1f;
+				tl_y = tl_y - tl_y * sin(ship_angle_x) * dec_scale * 0.1f;
+				tr_x = tr_x + tr_x * sin(ship_angle_x) * dec_scale * 0.1f;
+				tr_y = tr_y + tr_y * sin(ship_angle_x) * dec_scale * 0.1f;
+
+				bl_x = bl_x - bl_x * sin(ship_angle_x) * dec_scale * 0.1f;
+				bl_y = bl_y + bl_y * sin(ship_angle_x) * dec_scale * 0.1f;
+				br_x = br_x + br_x * sin(ship_angle_x) * dec_scale * 0.1f;
+				br_y = br_y - br_y * sin(ship_angle_x) * dec_scale * 0.1f;
+			}
+
+			// test warped decal drawing so we can tilt the ship.
+			// warped decal thingy
+			points[0] = { tl_x, tl_y };		// top left
+			points[1] = { bl_x, bl_y };		// bottom left
+			points[2] = { br_x, br_y };		// bottom right
+			points[3] = { tr_x, tr_y };		// top right
+			DrawWarpedDecal(dec_ship, points);
+
 		}
 	}
 
@@ -801,14 +962,14 @@ public:
 
 		// draw cargos
 		for (int i = 0; i < cargos.size(); ++i) {
-			FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 2, olc::GREEN);
+			FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::GREEN);
 		}
 
 		// draw dropzone
-		FillCircle({ mm_pos.x + int(dropzone.x * scale_x), mm_pos.y + int(dropzone.y * scale_y) }, 2, olc::RED);
+		FillCircle({ mm_pos.x + int(dropzone.x * scale_x), mm_pos.y + int(dropzone.y * scale_y) }, 1, olc::RED);
 
 		// draw ship
-		DrawCircle({ mm_pos.x + int((ship_pos.x) * scale_x), mm_pos.y + int((ship_pos.y) * scale_y) }, 3, olc::RED);
+		DrawCircle({ mm_pos.x + int((ship_pos.x) * scale_x), mm_pos.y + int((ship_pos.y) * scale_y) }, 2, olc::RED);
 
 		// minimap boundary
 		DrawRect({ mm_pos.x - 4,mm_pos.y - 4 }, { minimap_size.x + 3,minimap_size.y + 1 }, olc::YELLOW);
@@ -889,6 +1050,33 @@ public:
 
 	}
 
+	void DrawThrottle(int x, int y) {
+		// ship_avr_throttle
+		
+		int BarHeight = 100;
+		int BarWidth = 20;
+
+		// float scale =  BarHeight*ship_avr_throttle;
+		int AltBarHeight; // = int(ship_avr_throttle / scale);
+
+#ifdef DEBUG_PRINT
+		// draw throttle
+		ss.str("");
+		ss << throttle1 << " " << throttle2 << " " << throttle3 << " " << throttle4;
+		DrawString({ 10,240 }, ss.str());
+#endif
+
+		DrawRect({ x,y }, { BarWidth, BarHeight });
+		FillRect({ x + 1,(y + 100) - int((BarHeight*ship_avr_throttle - 2)) }, { BarWidth - 2, int((BarHeight*ship_avr_throttle - 4)) }, olc::RED);
+
+		tmpstr = "Thr";
+		DrawString({ x,y-10 }, tmpstr, olc::GREY);
+		ss.str(""); ss << std::setw(3) << int(ship_avr_throttle);
+		tmpstr = ss.str();
+		DrawString({ x,y-105 }, tmpstr, olc::YELLOW);
+
+	}
+
 	void DrawZVelocity(int x, int y, float ship_vel) {
 		int BarHeight = 100;
 		int BarWidth = 20;
@@ -914,11 +1102,13 @@ public:
 				sound_altitude_alert_play = true;
 			}
 		}
-		tmpstr = "Vel";
-		DrawString({ x,y - 10 }, tmpstr, olc::GREY);
+
+		DrawString({ x,y - 10 }, "Vel", olc::GREY);
 		ss.str(""); ss << std::setw(3) << int(trueVel);
-		tmpstr = ss.str();
-		DrawString({ x,y + 105 }, tmpstr, olc::YELLOW);
+		if ( trueVel < 0)
+			DrawString({ x,y + 105 }, ss.str(), olc::RED);
+		else
+			DrawString({ x,y + 105 }, ss.str(), olc::YELLOW);
 
 	}
 
@@ -932,6 +1122,8 @@ public:
 
 #define NEWFUNC_DrawShipOnScreen
 #ifdef NEWFUNC_DrawShipOnScreen
+
+
 	// proppellar size is the named size of the craft
 	void DrawShipOnScreen(olc::vi2d sos_pos, int ship_min_size, int ship_max_size, float altitude) {
 		float altscale = altitude / max_altitude;
@@ -962,6 +1154,7 @@ public:
 
 	}
 #else
+
 	void DrawShipOnScreen(olc::vi2d sos_pos, int engineSize) {
 		float engineOffset = engineSize * 2.5;
 		DrawCircle(sos_pos, engineSize); // engine 1

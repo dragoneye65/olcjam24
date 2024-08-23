@@ -29,5 +29,8 @@
     <ClInclude Include="inc\pge.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="inc\olcSoundWaveEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
