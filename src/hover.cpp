@@ -10,6 +10,17 @@ public:
 		sAppName = "Hover";
 	}
 
+	olc::sound::WaveEngine wave_engine;
+	olc::sound::Wave wave_altitude_alert;
+	olc::sound::Wave wave_crash;
+	olc::sound::Wave wave_pickup;
+	olc::sound::Wave wave_drop;
+
+	bool sound_altitude_alert_play = false;
+	bool sound_crash_play = false;
+	bool sound_pickup_play = false;
+	bool sound_drop_play = false;
+
 	// first char based game map, don't need it, can generate it
 	std::string game_map;
 	olc::vi2d charmap_dim = { 16, 10 };
@@ -38,7 +49,8 @@ public:
 	float ship_velocity_z = { 0.0f };
 	olc::vf2d ship_cap_vel_xy = { 100.0f, 100.0f };
 	float ship_cap_vel_z = 300.0f;
-	float last_velocity_before_crashlanding = 0.0f;					// checking for pancake 
+	float last_velocity_before_crashlanding = 0.0f;					// checking for pancake effect
+	float velocity_alert_warning_threshhold = 0.6f;
 	float ship_response = 1.6f;										// respons factor on throttle
 	float ship_avr_throttle = 0.0f;
 	float ship_idle_throttle = 0.01f;
@@ -168,6 +180,11 @@ public:
 		InitGameMap();
 		ship_pos = startpos;
 
+		wave_engine.InitialiseAudio();
+		wave_pickup.LoadAudioWaveform("../res/wav/pickup.wav");
+		wave_drop.LoadAudioWaveform("../res/wav/drop.wav");
+		wave_crash.LoadAudioWaveform("../res/wav/crash.wav");
+		wave_altitude_alert.LoadAudioWaveform("../res/wav/altitude_alert.wav");
 
 		// cargo_it = cargos.begin();
 
@@ -437,6 +454,7 @@ public:
 			if (int(altitude) == 0 && last_velocity_before_crashlanding < game_critical_landing_velocity) {
 				game_state = state::THEEND;
 				ship_crashed = true;
+				sound_crash_play = true;
 			}
 
 			// debug: check if debug ship_crash is set
@@ -454,6 +472,31 @@ public:
 					cargo_it = cargos.begin();
 			}
 #endif
+
+
+			// play the crash sound
+			if ( sound_crash_play) {
+				sound_crash_play = false;
+				wave_engine.PlayWaveform(&wave_crash);
+			}
+
+			// play the altitude alert sound
+			if ( sound_altitude_alert_play) {
+				sound_altitude_alert_play = false;
+				wave_engine.PlayWaveform(&wave_altitude_alert);
+			}
+
+			// play the cargo pickup sound
+			if ( sound_pickup_play) {
+				sound_pickup_play = false;
+				wave_engine.PlayWaveform(&wave_pickup);
+			}
+
+			// play the drop sound
+			if ( sound_drop_play) {
+				sound_drop_play = false;
+				wave_engine.PlayWaveform(&wave_drop);
+			}
 
 		} // endif: state_GAMEON ---
 
@@ -689,6 +732,7 @@ public:
 						// is it some cargo? then move it into inventory
 						if (isdigit(cargos[i].cargoType)) {
 							inventory.push_back(cargos[i]);
+							sound_pickup_play = true;
 							cargos.erase(cargos.begin() + i);  // off the map with it
 						}
 						else {
@@ -700,6 +744,7 @@ public:
 										CountTheChicken(inventory[j].cargoType);  // offload 
 									}
 									inventory.clear();
+									sound_drop_play = false;
 								}
 							}
 						}
@@ -847,8 +892,9 @@ public:
 		if (AltBarHeight > BarHeight)
 			AltBarHeight = BarHeight;
 
-		if (trueVel < game_critical_landing_velocity * 0.6f)
+		if (trueVel < game_critical_landing_velocity * velocity_alert_warning_threshhold) {
 			col = olc::RED;
+		}
 
 		DrawRect({ x,y }, { BarWidth, BarHeight });
 		FillRect({ x + 1,(y + 100) - (AltBarHeight - 2) }, { BarWidth - 2, (AltBarHeight - 4) }, col);
@@ -857,6 +903,7 @@ public:
 		if (timer_descent_vel_alert_active) {
 			if (timer_toggle_on_state) {
 				FillRect({ x - 1 * 8,y - 10 }, { 5 * 8, 10 }, olc::RED);
+				sound_altitude_alert_play = true;
 			}
 		}
 		tmpstr = "Vel";

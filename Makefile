@@ -25,7 +25,7 @@ OBJ     	:= obj
 RES			:= res
 
 #LIBRARIES	:= -lGL -lGLEW -lSDL2 -lSOIL -lassimp
-LIBRARIES	:= -lGL -lX11 -lpthread -lpng
+LIBRARIES	:= -lGL -lX11 -lpthread -lpng -lpulse -lpulse-simple
 
 SOURCES		:= $(shell find $(SRC) -type f -name *.cpp)
 OBJECTS     := $(patsubst $(SRC)/%,$(OBJ)/%,$(SOURCES:.cpp=.o))
