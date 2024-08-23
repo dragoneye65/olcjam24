@@ -27,19 +27,24 @@ public:
 	int player_deliveries = 0;
 
 	// ship, 4 engines 
-	float throttle[4] = { 0.0f, 0.0f, 0.0f, 0.0f };				// 0-100% [0.0 - 1.0]
+	float throttle1 = { 0.0f };										// 0-100% [0.0 - 1.0]
+	float throttle2 = { 0.0f };										// 0-100% [0.0 - 1.0]
+	float throttle3 = { 0.0f };										// 0-100% [0.0 - 1.0]
+	float throttle4 = { 0.0f };										// 0-100% [0.0 - 1.0]
 	float ship_net_weight = 900.0f;
-	float ship_weight = 900.0f;								// grams
-	float ship_velocity[3] = { 0.0f, 0.0f, 0.0f };				// x,y,z
+	float ship_weight = 900.0f;										// grams
+	float ship_velocity_x = { 0.0f };
+	float ship_velocity_y = { 0.0f };
+	float ship_velocity_z = { 0.0f };
 	olc::vf2d ship_cap_vel_xy = { 100.0f, 100.0f };
 	float ship_cap_vel_z = 300.0f;
-	float last_velocity_before_crashlanding = 0.0f;			// checking for pancake 
-	float ship_response = 1.6f;								// respons factor on throttle
+	float last_velocity_before_crashlanding = 0.0f;					// checking for pancake 
+	float ship_response = 1.6f;										// respons factor on throttle
 	float ship_avr_throttle = 0.0f;
 	float ship_idle_throttle = 0.01f;
-	float ship_max_thrust = 4000.0f;							// grams
-	float ship_max_angle = 0.7853981634f; // M_PI_4;							// pi/4 = 45 deg
-	float pi_2 = 1.57079632679f;
+	float ship_max_thrust = 4000.0f;								// grams
+	float ship_max_angle = 0.7853981634f; 							// M_PI_4 pi/4 = 45 deg
+	float pi_2 = 1.57079632679f;									// 
 	bool ship_crashed = false;
 	int ship_docket_at_cargoType = 0;
 
@@ -207,7 +212,7 @@ public:
 
 		if (game_state == state::GAMEON) {
 
-			// #ifdef DEBUG_PRINT
+#ifdef DEBUG_PRINT
 						// draw velocity
 			int vel_pos_x = ship_on_screen_pos.x - 50;
 			int vel_pos_y = ship_on_screen_pos.y + 110;
@@ -220,25 +225,27 @@ public:
 				if (i != 2) tmpstr += ", "; else tmpstr += " }";
 				DrawString({ vel_pos_x + i * 55 + offx,vel_pos_y }, tmpstr, olc::YELLOW);
 			}
-			// #endif
+#endif
 
 			// calculate angle from thrust differentials (simple version) max angle = 45 deg
-			ship_angle_x = pi_2 * (((throttle[0] + throttle[1]) - (throttle[2] + throttle[3])) / 2);
-			ship_angle_y = pi_2 * ((throttle[0] + throttle[3]) - (throttle[1] + throttle[2])) / 2;
+			// ship_angle_x = pi_2 * (((throttle[0] + throttle[1]) - (throttle[2] + throttle[3])) / 2);
+			// ship_angle_y = pi_2 * ((throttle[0] + throttle[3]) - (throttle[1] + throttle[2])) / 2;
+			ship_angle_x = pi_2 * (((throttle1 + throttle2) - (throttle3 + throttle4)) / 2);
+			ship_angle_y = pi_2 * ((throttle1 + throttle4) - (throttle2 + throttle3)) / 2;
 
 			// power to all engines
 			if (GetKey(olc::Key::UP).bHeld) {
-				for (int i = 0; i < 4; i++) {
-					throttle[i] += fElapsedTime * ship_response;
-					if (throttle[i] > 1.0) throttle[i] = 1.0;
-				}
+				throttle1 += fElapsedTime * ship_response; if (throttle1 > 1.0) throttle1 = 1.0;
+				throttle2 += fElapsedTime * ship_response; if (throttle2 > 1.0) throttle2 = 1.0;
+				throttle3 += fElapsedTime * ship_response; if (throttle3 > 1.0) throttle3 = 1.0;
+				throttle4 += fElapsedTime * ship_response; if (throttle4 > 1.0) throttle4 = 1.0;
 			}
 
 			if (GetKey(olc::Key::DOWN).bHeld) {
-				for (int i = 0; i < 4; i++) {
-					throttle[i] -= fElapsedTime * ship_response;
-					if (throttle[i] < ship_idle_throttle) throttle[i] = ship_idle_throttle;
-				}
+				throttle1 -= fElapsedTime * ship_response; if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;
+				throttle2 -= fElapsedTime * ship_response; if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;
+				throttle3 -= fElapsedTime * ship_response; if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;
+				throttle4 -= fElapsedTime * ship_response; if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;
 			}
 
 			// roll left
@@ -246,77 +253,76 @@ public:
 			// decrese 1 and 2
 			int mouse_deadzone = 50;
 			if (GetKey(olc::Key::A).bHeld) {
-				throttle[0] -= fElapsedTime * ship_response;
-				throttle[1] -= fElapsedTime * ship_response;
-				throttle[2] += fElapsedTime * ship_response;
-				throttle[3] += fElapsedTime * ship_response;
-				for (int i = 0; i < 4; i++) {
-					if (throttle[i] < ship_idle_throttle) throttle[i] = ship_idle_throttle;
-					if (throttle[i] > 1.0) throttle[i] = 1.0;
-				}
+				throttle1 -= fElapsedTime * ship_response;
+				throttle2 -= fElapsedTime * ship_response;
+				throttle3 += fElapsedTime * ship_response;
+				throttle4 += fElapsedTime * ship_response;
+				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
+				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
+				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
+				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
 			}
 			// roll right
 			// Increse 1 and 2
 			// decrese 3 and 4
 			if (GetKey(olc::Key::D).bHeld) {
-				throttle[0] += fElapsedTime * ship_response;
-				throttle[1] += fElapsedTime * ship_response;
-				throttle[2] -= fElapsedTime * ship_response;
-				throttle[3] -= fElapsedTime * ship_response;
-				for (int i = 0; i < 4; i++) {
-					if (throttle[i] < ship_idle_throttle) throttle[i] = ship_idle_throttle;
-					if (throttle[i] > 1.0) throttle[i] = 1.0;
-				}
+				throttle1 += fElapsedTime * ship_response;
+				throttle2 += fElapsedTime * ship_response;
+				throttle3 -= fElapsedTime * ship_response;
+				throttle4 -= fElapsedTime * ship_response;
+				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
+				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
+				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
+				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
 			}
 			// pitch forward
 			// Increse 2 and 3
 			// decrese 1 and 4
 			if (GetKey(olc::Key::W).bHeld) {
-				throttle[0] -= fElapsedTime * ship_response;
-				throttle[1] += fElapsedTime * ship_response;
-				throttle[2] += fElapsedTime * ship_response;
-				throttle[3] -= fElapsedTime * ship_response;
-				for (int i = 0; i < 4; i++) {
-					if (throttle[i] < ship_idle_throttle) throttle[i] = ship_idle_throttle;
-					if (throttle[i] > 1.0) throttle[i] = 1.0;
-				}
+				throttle1 -= fElapsedTime * ship_response;
+				throttle2 += fElapsedTime * ship_response;
+				throttle3 += fElapsedTime * ship_response;
+				throttle4 -= fElapsedTime * ship_response;
+				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
+				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
+				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
+				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
 			}
 			// pitch back
 			// Increse 1 and 4
 			// decrese 2 and 3
 			if (GetKey(olc::Key::S).bHeld) {
-				throttle[0] += fElapsedTime * ship_response;
-				throttle[1] -= fElapsedTime * ship_response;
-				throttle[2] -= fElapsedTime * ship_response;
-				throttle[3] += fElapsedTime * ship_response;
-				for (int i = 0; i < 4; i++) {
-					if (throttle[i] < ship_idle_throttle) throttle[i] = ship_idle_throttle;
-					if (throttle[i] > 1.0) throttle[i] = 1.0;
-				}
+				throttle1 += fElapsedTime * ship_response;
+				throttle2 -= fElapsedTime * ship_response;
+				throttle3 -= fElapsedTime * ship_response;
+				throttle4 += fElapsedTime * ship_response;
+				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle; if (throttle1 > 1.0) throttle1 = 1.0;
+				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle; if (throttle2 > 1.0) throttle2 = 1.0;
+				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle; if (throttle3 > 1.0) throttle3 = 1.0;
+				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle; if (throttle4 > 1.0) throttle4 = 1.0;
 			}
-
-			if (GetKey(olc::Key::SPACE).bPressed) {
-				float avr = 0.0;
-				for (int i = 0; i < 4; i++)
-					avr += throttle[i];
-				for (int i = 0; i < 4; i++)
-					throttle[i] = avr / 4;
-			}
-
-
 
 			// calculate throttle average from engines
-			ship_avr_throttle = (throttle[0] + throttle[1] + throttle[2] + throttle[3]) / 4;
+			ship_avr_throttle = (throttle1+throttle2+throttle3+throttle4)/4;
+
+			// reset the throttle to neutral position
+			if (GetKey(olc::Key::SPACE).bPressed) {
+				throttle1 = ship_avr_throttle;
+				throttle2 = ship_avr_throttle;
+				throttle3 = ship_avr_throttle;
+				throttle4 = ship_avr_throttle;
+			}			
+			
 			// thrust
-			ship_velocity[2] += fElapsedTime * 0.000005f * (ship_max_thrust)*cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;
+			ship_velocity_z += fElapsedTime * 0.000005f * (ship_max_thrust)*cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;
 			// Gravity
-			ship_velocity[2] -= fElapsedTime * 0.000001f * ship_weight * gravity;
+			ship_velocity_z -= fElapsedTime * 0.000001f * ship_weight * gravity;
 
 			if (game_state == state::GAMEON)
-				last_velocity_before_crashlanding = ship_velocity[2] * velocity_scale;    // for checking if you crashed hard into ground
+				last_velocity_before_crashlanding = ship_velocity_z * velocity_scale;    // for checking if you crashed hard into ground
 
-			ship_velocity[0] += fElapsedTime * 0.006f * sin(ship_angle_x);
-			ship_velocity[1] += fElapsedTime * 0.006f * sin(ship_angle_y);
+			ship_velocity_x += fElapsedTime * 0.006f * sin(ship_angle_x);
+			ship_velocity_y += fElapsedTime * 0.006f * sin(ship_angle_y);
 
 #ifdef DEBUG_PRINT
 			ss.str("");	ss << ship_velocity[0] * velocity_scale << ", " << ship_angle_x;
@@ -325,22 +331,22 @@ public:
 			DrawString({ 100,110 }, ss.str());
 #endif
 
-			altitude += ship_velocity[2];
+			altitude += ship_velocity_z;
 
 			// cap ship velocity in xy
-			if ((ship_velocity[0] * velocity_scale) > ship_cap_vel_xy.x) 	ship_velocity[0] = ship_cap_vel_xy.x / velocity_scale;
-			if ((ship_velocity[0] * velocity_scale) < -ship_cap_vel_xy.x)	ship_velocity[0] = -(ship_cap_vel_xy.x / velocity_scale);
-			if ((ship_velocity[1] * velocity_scale) > ship_cap_vel_xy.y) 	ship_velocity[1] = ship_cap_vel_xy.y / velocity_scale;
-			if ((ship_velocity[1] * velocity_scale) < -ship_cap_vel_xy.y)	ship_velocity[1] = -ship_cap_vel_xy.y / velocity_scale;
+			if ((ship_velocity_x * velocity_scale) >  ship_cap_vel_xy.x) 	ship_velocity_x =   ship_cap_vel_xy.x / velocity_scale;
+			if ((ship_velocity_x * velocity_scale) < -ship_cap_vel_xy.x)	ship_velocity_x = -(ship_cap_vel_xy.x / velocity_scale);
+			if ((ship_velocity_y * velocity_scale) >  ship_cap_vel_xy.y) 	ship_velocity_y =   ship_cap_vel_xy.y / velocity_scale;
+			if ((ship_velocity_y * velocity_scale) < -ship_cap_vel_xy.y)	ship_velocity_y = -(ship_cap_vel_xy.y / velocity_scale);
 			
-			ship_pos.x += ship_velocity[0];
-			ship_pos.y += ship_velocity[1];
+			ship_pos.x += ship_velocity_x;
+			ship_pos.y += ship_velocity_y;
 
 			// limit the ship inside the map area , bounch back
-			if (ship_pos.x < 0) { ship_pos.x = 0.0; ship_velocity[0] *= -1.0; }
-			if (ship_pos.x > 500) { ship_pos.x = 500.0; ship_velocity[0] *= -1.0; }
-			if (ship_pos.y < 0) { ship_pos.y = 0.0; ship_velocity[1] *= -1.0; }
-			if (ship_pos.y > 500) { ship_pos.y = 500.0; ship_velocity[1] *= -1.0; }
+			if (ship_pos.x <   0.0f)	{ ship_pos.x =   0.0f; ship_velocity_x *= -1.0f; }
+			if (ship_pos.x > 500.0f)	{ ship_pos.x = 500.0f; ship_velocity_x *= -1.0f; }
+			if (ship_pos.y <   0.0f)	{ ship_pos.y =   0.0f; ship_velocity_y *= -1.0f; }
+			if (ship_pos.y > 500.0f)	{ ship_pos.y = 500.0f; ship_velocity_y *= -1.0f; }
 
 #ifdef DEBUG_PRINT
 			// Show the position to the ship under minimap
@@ -353,13 +359,13 @@ public:
 			// Altitude check limits
 			if (altitude > max_altitude) {
 				altitude = max_altitude;
-				ship_velocity[2] = 0.0; // z
+				ship_velocity_z = 0.0f;
 			}
-			if (altitude < 0.0) {
-				altitude = 0.0;
-				ship_velocity[0] = 0.0; // x
-				ship_velocity[1] = 0.0; // y
-				ship_velocity[2] = 0.0; // z
+			if (altitude < 0.0f) {
+				altitude = 0.0f;
+				ship_velocity_x = 0.0f; // x
+				ship_velocity_y = 0.0f; // y
+				ship_velocity_z = 0.0f; // z
 			}
 
 			// Scale the ship size relative to altitude
@@ -374,7 +380,7 @@ public:
 #endif
 
 			DrawAltitude(500, 200);
-			DrawZVelocity(530, 200, ship_velocity[2] * velocity_scale);
+			DrawZVelocity(530, 200, ship_velocity_z * velocity_scale);
 			//	DrawShipAngle( ship_on_screen_pos, ship_angle_x, ship_angle_y);
 			DrawMinimap(minimap_position, ship_pos);
 			DrawGameMapOnScreen(ship_pos);
@@ -423,7 +429,7 @@ public:
 
 			timer_descent_vel_alert_active = false;
 			// show alert if decending dangerously fast
-			if (int(altitude) != 0 && ship_velocity[2] * velocity_scale < (game_critical_landing_velocity + 40.0f)) {
+			if (int(altitude) != 0 && ship_velocity_z * velocity_scale < (game_critical_landing_velocity + 40.0f)) {
 				timer_descent_vel_alert_active = true;
 			}
 
@@ -465,12 +471,16 @@ public:
 		if (game_state == state::INTRO) {
 			player_deliveries = 0;
 			ship_crashed = false;
-			last_velocity_before_crashlanding = 0.0;
+			last_velocity_before_crashlanding = 0.0f;
 			player_points = 0;
-			for (int i = 0; i < 3; i++) {
-				ship_velocity[i] = 0.0;
-				throttle[i] = 0.0;
-			}
+			ship_velocity_x = 0.0f;
+			ship_velocity_y = 0.0f;
+			ship_velocity_z = 0.0f;
+			throttle1 = 0.0f;
+			throttle2= 0.0f;
+			throttle3 = 0.0f;
+			throttle4 = 0.0f;
+			
 
 			Instructions(instructions_pos);
 			if (GetKey(olc::Key::ENTER).bPressed || GetKey(olc::Key::SPACE).bPressed) {
@@ -585,8 +595,12 @@ public:
 			DrawString({ offsx + 10, asdf + offsy * 18 }, " ESC   (quit)", olc::RED);
 		}
 		DrawString({ offsx + 10, asdf + offsy * 3 }, "Score: ", olc::GREY);
-		ss.str(""); ss << std::setw(0) << player_points;
-		DrawString({ offsx + 10 + 9 * 8, asdf + offsy * 3 }, ss.str(), olc::GREEN);
+		ss.str(""); ss << std::setw(5) << player_points;
+		DrawString({ offsx + 10 + 7* 8, asdf + offsy * 3 }, ss.str(), olc::GREEN);
+
+		if(ship_crashed) {
+			DrawLine({offsx + 10 + 7 * 8, asdf + offsy *3+3 }, {offsx + 10 + 7 * 8 + 5*8, asdf + offsy *3+3}, olc::RED);
+		}
 
 		DrawString({ offsx + 10 + 20 * 8, asdf + offsy * 3 }, "Runs: ", olc::GREY);
 		ss.str(""); ss << std::setw(0) << player_deliveries;
@@ -826,7 +840,7 @@ public:
 		int BarHeight = 100;
 		int BarWidth = 20;
 		float scale = game_critical_landing_velocity / float(BarHeight);
-		float trueVel = ship_velocity[2] * velocity_scale;
+		float trueVel = ship_velocity_z * velocity_scale;
 		int AltBarHeight = int(fabs(trueVel / scale));
 		olc::Pixel col = olc::GREEN;
 
@@ -873,16 +887,16 @@ public:
 		olc::vf2d center_offset = sos_pos - olc::vf2d{ offset, offset };
 
 		DrawCircle(center_offset, int(ship_size)); // engine 1
-		FillCircle(center_offset, int(throttle[0] * ship_size), olc::RED);  // power level
+		FillCircle(center_offset, int(throttle1 * ship_size), olc::RED);  // power level
 
 		DrawCircle({ int(center_offset.x),int(center_offset.y + engineOffset) }, int(ship_size)); // engine 2
-		FillCircle({ int(center_offset.x),int(center_offset.y + engineOffset) }, int(throttle[1] * ship_size), olc::RED); // engine 2
+		FillCircle({ int(center_offset.x),int(center_offset.y + engineOffset) }, int(throttle2 * ship_size), olc::RED); // engine 2
 
 		DrawCircle({ int(center_offset.x + engineOffset),int(center_offset.y + engineOffset) }, int(ship_size)); // engine 3
-		FillCircle({ int(center_offset.x + engineOffset),int(center_offset.y + engineOffset) }, int(throttle[2] * ship_size), olc::RED); // engine 3
+		FillCircle({ int(center_offset.x + engineOffset),int(center_offset.y + engineOffset) }, int(throttle3 * ship_size), olc::RED); // engine 3
 
 		DrawCircle({ int(center_offset.x + engineOffset),int(center_offset.y) }, int(ship_size)); // engine 4
-		FillCircle({ int(center_offset.x + engineOffset),int(center_offset.y) }, int(throttle[3] * ship_size), olc::RED); // engine 4
+		FillCircle({ int(center_offset.x + engineOffset),int(center_offset.y) }, int(throttle4 * ship_size), olc::RED); // engine 4
 
 		// cargo bay
 		float bay_min_size = 10;
