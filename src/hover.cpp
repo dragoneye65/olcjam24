@@ -15,6 +15,10 @@ public:
 	olc::sound::Wave wave_crash;
 	olc::sound::Wave wave_pickup;
 	olc::sound::Wave wave_drop;
+	olc::sound::PlayingWave it_altitude_alert;
+	olc::sound::PlayingWave it_crash;
+	olc::sound::PlayingWave it_pickup;
+	olc::sound::PlayingWave it_drop;
 
 	bool sound_altitude_alert_play = false;
 	bool sound_crash_play = false;
@@ -163,7 +167,7 @@ public:
 		//	  0:stationary (usually just bomb it)
 		//  1-5: moveable  (pic up and drop these different cargo types)
 		//  6-9: running   (now we are talking, pick up or bomb those running suckers)
-		game_map  = "9              9";
+		game_map = "9              9";
 		game_map += "     0   0      ";
 		game_map += "  5         3   ";
 		game_map += "       2        ";
@@ -181,16 +185,18 @@ public:
 		ship_pos = startpos;
 
 		wave_engine.InitialiseAudio();
-		wave_pickup.LoadAudioWaveform("../res/wav/pickup.wav");
-		wave_drop.LoadAudioWaveform("../res/wav/drop.wav");
-		wave_crash.LoadAudioWaveform("../res/wav/crash.wav");
-		wave_altitude_alert.LoadAudioWaveform("../res/wav/altitude_alert.wav");
+
+		// std::string sound_file_path;
+
+		wave_altitude_alert.LoadAudioWaveform("./res/wav/altitude_alert.wav");
+		wave_pickup.LoadAudioWaveform( "./res/wav/pickup.wav");
+		wave_drop.LoadAudioWaveform( "./res/wav/drop.wav");
+		wave_crash.LoadAudioWaveform( "./res/wav/crash.wav");
 
 		// cargo_it = cargos.begin();
 
 		return true;
 	}
-
 
 	void TimerUpdateTrigger(float fElapsedTime, float time_until_trigger) {
 		if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastToggleTime).count() >= time_until_trigger) {
@@ -230,7 +236,7 @@ public:
 		if (game_state == state::GAMEON) {
 
 #ifdef DEBUG_PRINT
-						// draw velocity
+			// draw velocity
 			int vel_pos_x = ship_on_screen_pos.x - 50;
 			int vel_pos_y = ship_on_screen_pos.y + 110;
 			tmpstr = ""; int offx = 0;
@@ -320,7 +326,7 @@ public:
 			}
 
 			// calculate throttle average from engines
-			ship_avr_throttle = (throttle1+throttle2+throttle3+throttle4)/4;
+			ship_avr_throttle = (throttle1 + throttle2 + throttle3 + throttle4) / 4;
 
 			// reset the throttle to neutral position
 			if (GetKey(olc::Key::SPACE).bPressed) {
@@ -328,8 +334,8 @@ public:
 				throttle2 = ship_avr_throttle;
 				throttle3 = ship_avr_throttle;
 				throttle4 = ship_avr_throttle;
-			}			
-			
+			}
+
 			// thrust
 			ship_velocity_z += fElapsedTime * 0.000005f * (ship_max_thrust)*cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;
 			// Gravity
@@ -351,19 +357,19 @@ public:
 			altitude += ship_velocity_z;
 
 			// cap ship velocity in xy
-			if ((ship_velocity_x * velocity_scale) >  ship_cap_vel_xy.x) 	ship_velocity_x =   ship_cap_vel_xy.x / velocity_scale;
+			if ((ship_velocity_x * velocity_scale) > ship_cap_vel_xy.x) 	ship_velocity_x = ship_cap_vel_xy.x / velocity_scale;
 			if ((ship_velocity_x * velocity_scale) < -ship_cap_vel_xy.x)	ship_velocity_x = -(ship_cap_vel_xy.x / velocity_scale);
-			if ((ship_velocity_y * velocity_scale) >  ship_cap_vel_xy.y) 	ship_velocity_y =   ship_cap_vel_xy.y / velocity_scale;
+			if ((ship_velocity_y * velocity_scale) > ship_cap_vel_xy.y) 	ship_velocity_y = ship_cap_vel_xy.y / velocity_scale;
 			if ((ship_velocity_y * velocity_scale) < -ship_cap_vel_xy.y)	ship_velocity_y = -(ship_cap_vel_xy.y / velocity_scale);
-			
+
 			ship_pos.x += ship_velocity_x;
 			ship_pos.y += ship_velocity_y;
 
 			// limit the ship inside the map area , bounch back
-			if (ship_pos.x <   0.0f)	{ ship_pos.x =   0.0f; ship_velocity_x *= -1.0f; }
-			if (ship_pos.x > 500.0f)	{ ship_pos.x = 500.0f; ship_velocity_x *= -1.0f; }
-			if (ship_pos.y <   0.0f)	{ ship_pos.y =   0.0f; ship_velocity_y *= -1.0f; }
-			if (ship_pos.y > 500.0f)	{ ship_pos.y = 500.0f; ship_velocity_y *= -1.0f; }
+			if (ship_pos.x < 0.0f) { ship_pos.x = 0.0f; ship_velocity_x *= -1.0f; }
+			if (ship_pos.x > 500.0f) { ship_pos.x = 500.0f; ship_velocity_x *= -1.0f; }
+			if (ship_pos.y < 0.0f) { ship_pos.y = 0.0f; ship_velocity_y *= -1.0f; }
+			if (ship_pos.y > 500.0f) { ship_pos.y = 500.0f; ship_velocity_y *= -1.0f; }
 
 #ifdef DEBUG_PRINT
 			// Show the position to the ship under minimap
@@ -475,25 +481,27 @@ public:
 
 
 			// play the crash sound
-			if ( sound_crash_play) {
+			if (sound_crash_play) {
 				sound_crash_play = false;
 				wave_engine.PlayWaveform(&wave_crash);
 			}
 
 			// play the altitude alert sound
-			if ( sound_altitude_alert_play) {
+			if (sound_altitude_alert_play) {
 				sound_altitude_alert_play = false;
-				wave_engine.PlayWaveform(&wave_altitude_alert);
+				// this triggers every 500ms,  it frikes out the wave_engine...  so silence it is for now
+				// it_altitude_alert = wave_engine.PlayWaveform(&wave_altitude_alert);
+				// it_altitude_alert->bFlagForStop = true;
 			}
 
 			// play the cargo pickup sound
-			if ( sound_pickup_play) {
+			if (sound_pickup_play) {
 				sound_pickup_play = false;
 				wave_engine.PlayWaveform(&wave_pickup);
 			}
 
 			// play the drop sound
-			if ( sound_drop_play) {
+			if (sound_drop_play) {
 				sound_drop_play = false;
 				wave_engine.PlayWaveform(&wave_drop);
 			}
@@ -520,10 +528,10 @@ public:
 			ship_velocity_y = 0.0f;
 			ship_velocity_z = 0.0f;
 			throttle1 = 0.0f;
-			throttle2= 0.0f;
+			throttle2 = 0.0f;
 			throttle3 = 0.0f;
 			throttle4 = 0.0f;
-			
+
 
 			Instructions(instructions_pos);
 			if (GetKey(olc::Key::ENTER).bPressed || GetKey(olc::Key::SPACE).bPressed) {
@@ -639,10 +647,10 @@ public:
 		}
 		DrawString({ offsx + 10, asdf + offsy * 3 }, "Score: ", olc::GREY);
 		ss.str(""); ss << std::setw(5) << player_points;
-		DrawString({ offsx + 10 + 7* 8, asdf + offsy * 3 }, ss.str(), olc::GREEN);
+		DrawString({ offsx + 10 + 7 * 8, asdf + offsy * 3 }, ss.str(), olc::GREEN);
 
-		if(ship_crashed) {
-			DrawLine({offsx + 10 + 7 * 8, asdf + offsy *3+3 }, {offsx + 10 + 7 * 8 + 5*8, asdf + offsy *3+3}, olc::RED);
+		if (ship_crashed) {
+			DrawLine({ offsx + 10 + 7 * 8, asdf + offsy * 3 + 3 }, { offsx + 10 + 7 * 8 + 5 * 8, asdf + offsy * 3 + 3 }, olc::RED);
 		}
 
 		DrawString({ offsx + 10 + 20 * 8, asdf + offsy * 3 }, "Runs: ", olc::GREY);
@@ -744,7 +752,7 @@ public:
 										CountTheChicken(inventory[j].cargoType);  // offload 
 									}
 									inventory.clear();
-									sound_drop_play = false;
+									sound_drop_play = true;
 								}
 							}
 						}
