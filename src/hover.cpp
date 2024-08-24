@@ -1,4 +1,8 @@
-#include "pge.h"
+#define OLC_PGE_APPLICATION
+#include "olcPixelGameEngine.h"
+
+#define OLC_SOUNDWAVE
+#include "olcSoundWaveEngine.h"
 
 // #define DEBUG_PRINT
 
@@ -64,11 +68,11 @@ public:
 	float ship_velocity_x = { 0.0f };
 	float ship_velocity_y = { 0.0f };
 	float ship_velocity_z = { 0.0f };
-	olc::vf2d ship_cap_vel_xy = { 100.0f, 100.0f };
+	olc::vf2d ship_cap_vel_xy = { 1000.0f, 1000.0f };
 	float ship_cap_vel_z = 300.0f;
 	float last_velocity_before_crashlanding = 0.0f;					// checking for pancake effect
 	float velocity_alert_warning_threshhold = 0.6f;
-	float ship_response = 1.6f;										// respons factor on throttle
+	float ship_response = 2.0f;										// respons factor on the movement
 	float ship_avr_throttle = 0.0f;
 	float ship_idle_throttle = 0.01f;
 	float ship_max_thrust = 4000.0f;								// grams
@@ -85,7 +89,7 @@ public:
 	float ship_angle_x = 0.0;
 	float ship_angle_y = 0.0;
 	olc::vf2d ship_pos;
-	float velocity_scale = 5000.0;
+	float velocity_scale = 100.0;
 
 	// world
 	float gravity = 9.81f;									//  9.81 m/s^2
@@ -357,16 +361,20 @@ public:
 				throttle4 = ship_avr_throttle;
 			}
 
+			// TODO: Must make it frame rate independent!
+
 			// thrust
-			ship_velocity_z += fElapsedTime * 0.000005f * (ship_max_thrust)*cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;
+			// ship_velocity_z += fElapsedTime * 0.000005f * (ship_max_thrust)*cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;2
+			ship_velocity_z += fElapsedTime * 0.0005f  * (ship_max_thrust)*cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;
 			// Gravity
-			ship_velocity_z -= fElapsedTime * 0.000001f * ship_weight * gravity;
+			// ship_velocity_z -= fElapsedTime /* * 0.000001f */ * ship_weight * gravity;
+			ship_velocity_z -= fElapsedTime  * 0.0001f * ship_weight * gravity;
 
 			if (game_state == state::GAMEON)
 				last_velocity_before_crashlanding = ship_velocity_z * velocity_scale;    // for checking if you crashed hard into ground
 
-			ship_velocity_x += fElapsedTime * 0.006f * sin(ship_angle_x);
-			ship_velocity_y += fElapsedTime * 0.006f * sin(ship_angle_y);
+			ship_velocity_x += fElapsedTime * sin(ship_angle_x);
+			ship_velocity_y += fElapsedTime * sin(ship_angle_y);
 
 #ifdef DEBUG_PRINT
 			// Draw ship velocity and angle
@@ -1179,7 +1187,9 @@ public:
 int main()
 {
 	Game hover;
-	if (hover.Construct(640, 360, 2, 2, false)) // 640x360
+
+	// 640x360 with no full screen and sync to monitor refresh rate
+	if (hover.Construct(640, 360, 2, 2, false,true)) 
 		hover.Start();
 
 	return 0;
