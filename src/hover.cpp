@@ -194,38 +194,6 @@ public:
 		ss.str("");	ss << p.y; tmpstr = ss.str(); DrawString({ txtpos.x + 160, txtpos.y }, tmpstr, olc::YELLOW);
 	}
 
-	void updateShip(Ship& ship, float fElapsedTime) {
-		// Calculate thrust force components for each engine
-		float thrustX1 = ship.thrust * ship.throttle1 * cos(ship.angle + M_PI / 4);
-		float thrustY1 = ship.thrust * ship.throttle1 * sin(ship.angle + M_PI / 4);
-		float thrustX2 = ship.thrust * ship.throttle2 * cos(ship.angle - M_PI / 4);
-		float thrustY2 = ship.thrust * ship.throttle2 * sin(ship.angle - M_PI / 4);
-		float thrustX3 = ship.thrust * ship.throttle3 * cos(ship.angle - 3 * M_PI / 4);
-		float thrustY3 = ship.thrust * ship.throttle3 * sin(ship.angle - 3 * M_PI / 4);
-		float thrustX4 = ship.thrust * ship.throttle4 * cos(ship.angle + 3 * M_PI / 4);
-		float thrustY4 = ship.thrust * ship.throttle4 * sin(ship.angle + 3 * M_PI / 4);
-
-		// Calculate total thrust components
-		float thrustX = thrustX1 + thrustX2 + thrustX3 + thrustX4;
-		float thrustY = thrustY1 + thrustY2 + thrustY3 + thrustY4;
-		float thrustZ = thrustX1 + thrustX2 + thrustX3 + thrustX4; // Combine thrusts for thrustZ
-
-		// Update velocity
-		ship.x += thrustX * fElapsedTime;
-		ship.y += thrustY * fElapsedTime;
-		ship.z += thrustZ * fElapsedTime;
-
-		// Limit velocity to maxSpeed
-		float velocityMagnitude = sqrt(pow(ship.x, 2) + pow(ship.y, 2) + pow(ship.z, 2));
-		if (velocityMagnitude > ship.maxSpeed) {
-			float scaleFactor = ship.maxSpeed / velocityMagnitude;
-			ship.x *= scaleFactor;
-			ship.y *= scaleFactor;
-			ship.z *= scaleFactor;
-		}
-	}
-
-
 	bool OnUserCreate() override
 	{
 		// Called once at the start, so create things here
