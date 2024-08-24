@@ -142,14 +142,27 @@ public:
 		float x;
 		float y;
 		float z;  // Altitude
+		float vel_x;
+		float vel_y;
+		float vel_z;
+		float max_z;   // where to cap the altitude, wouldn't want to hurt the player uhm?
 		float angle;
-		float thrust;
+		float thrust;		// max thrust the ship can generate
 		float maxSpeed;
+		//olc::vf2d thrust1;
+		//olc::vf2d thrust2;
+		//olc::vf2d thrust3;
+		//olc::vf2d thrust4;
 		float throttle1;
 		float throttle2;
 		float throttle3;
 		float throttle4;
+		olc::vi2d screen_pos;
 	};
+
+	Ship inferiourBattleCruiser;
+	Ship oldRustyBucket;
+
 public:
 
 	// scan through the map and place the objects
@@ -240,7 +253,36 @@ public:
 
 		// cargo_it = cargos.begin();
 
+		// Ships initial values
+		InitializeShip(inferiourBattleCruiser, startpos);
+		inferiourBattleCruiser.x = startpos.x;
+		inferiourBattleCruiser.x = startpos.y;
+		inferiourBattleCruiser.thrust = ship_max_thrust;
+		
+		oldRustyBucket = inferiourBattleCruiser;
+		oldRustyBucket.x += 10.0f;
+		oldRustyBucket.y -= 10.0f;
+
 		return true;
+	}
+
+	void InitializeShip(Ship& ship, olc::vf2d pos) {
+	
+		ship.angle = 0.0f;
+		ship.maxSpeed = 100.0f;
+		ship.throttle1 = 0.1f;
+		ship.throttle2 = 0.1f;
+		ship.throttle3 = 0.1f;
+		ship.throttle4 = 0.1f;
+		ship.thrust = 0.0f;
+		ship.x = 0.0f;
+		ship.y = 0.0f;
+		ship.z = 0.0f;
+		ship.vel_x = 0.0f;
+		ship.vel_y = 0.0f;
+		ship.vel_z = 0.0f;
+		ship.max_z = 100.0f;
+		ship.screen_pos = pos;
 	}
 
 	void TimerUpdateTrigger(float fElapsedTime, float time_until_trigger) {
@@ -249,8 +291,14 @@ public:
 			lastToggleTime = std::chrono::steady_clock::now();
 		}
 	}
+
+
+	// Calculate the ship movements
 	void updateShip(Ship& ship, float fElapsedTime) {
-		// Calculate thrust force components for each engine
+		// Calculate thrust for each engine
+		ship.angle = atan2(ship.z, sqrt(pow(ship.x, 2) + pow(ship.y, 2)));
+
+		// individual engine thrust
 		float thrustX1 = ship.thrust * ship.throttle1 * cos(ship.angle + M_PI / 4);
 		float thrustY1 = ship.thrust * ship.throttle1 * sin(ship.angle + M_PI / 4);
 		float thrustX2 = ship.thrust * ship.throttle2 * cos(ship.angle - M_PI / 4);
@@ -260,25 +308,38 @@ public:
 		float thrustX4 = ship.thrust * ship.throttle4 * cos(ship.angle + 3 * M_PI / 4);
 		float thrustY4 = ship.thrust * ship.throttle4 * sin(ship.angle + 3 * M_PI / 4);
 
-		// Calculate total thrust components
+		// todo: do I need this later?
+		//ship.thrust1 = { thrustX1, thrustY1 };
+		//ship.thrust2 = { thrustX2, thrustY2 };
+		//ship.thrust3 = { thrustX3, thrustY3 };
+		//ship.thrust4 = { thrustX4, thrustY4 };
+
+		// Calculate total thrust
 		float thrustX = thrustX1 + thrustX2 + thrustX3 + thrustX4;
 		float thrustY = thrustY1 + thrustY2 + thrustY3 + thrustY4;
-		float thrustZ = thrustX1 + thrustX2 + thrustX3 + thrustX4; // Combine thrusts for thrustZ
+		float thrustZ = thrustX1 + thrustX2 + thrustX3 + thrustX4;
 
-		// Update velocity
-		ship.x += thrustX * fElapsedTime;
-		ship.y += thrustY * fElapsedTime;
-		ship.z += thrustZ * fElapsedTime;
+		
+		// Update velocity, this time around it should be frame rate independend, we'll see :)
+		ship.vel_x += thrustX * fElapsedTime;
+		ship.vel_y += thrustY * fElapsedTime;
+		ship.vel_z += thrustZ * fElapsedTime;
 
-		// Limit velocity to maxSpeed
-		float velocityMagnitude = sqrt(pow(ship.x, 2) + pow(ship.y, 2) + pow(ship.z, 2));
+		// Limit velocity
+		float velocityMagnitude = sqrt(pow(ship.vel_x, 2) + pow(ship.vel_y, 2) + pow(ship.vel_z, 2));
 		if (velocityMagnitude > ship.maxSpeed) {
 			float scaleFactor = ship.maxSpeed / velocityMagnitude;
-			ship.x *= scaleFactor;
-			ship.y *= scaleFactor;
-			ship.z *= scaleFactor;
+			ship.vel_x *= scaleFactor;
+			ship.vel_y *= scaleFactor;
+			ship.vel_z *= scaleFactor;
 		}
+		ship.x += ship.vel_x;
+		ship.y += ship.vel_y;
+		ship.z += ship.vel_z;
 	}
+
+
+
 	bool OnUserUpdate(float fElapsedTime) override
 	{
 		// called once per frame
@@ -348,7 +409,7 @@ public:
 			// roll left
 			// Increse 3 and 4
 			// decrese 1 and 2
-			int mouse_deadzone = 50;
+			// int mouse_deadzone = 50;
 			if (GetKey(olc::Key::A).bHeld) {
 				throttle1 -= fElapsedTime * ship_response;
 				throttle2 -= fElapsedTime * ship_response;
@@ -410,7 +471,6 @@ public:
 				throttle4 = ship_avr_throttle;
 			}
 
-			// TODO: Must make it frame rate independent!
 
 			// thrust
 			// ship_velocity_z += fElapsedTime * 0.000005f * (ship_max_thrust)*cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;2
@@ -424,14 +484,6 @@ public:
 
 			ship_velocity_x += fElapsedTime * sin(ship_angle_x);
 			ship_velocity_y += fElapsedTime * sin(ship_angle_y);
-
-#ifdef DEBUG_PRINT
-			// Draw ship velocity and angle
-			ss.str("");	ss << ship_velocity_x * velocity_scale << ", " << ship_angle_x;
-			DrawString({ 100,100 }, ss.str());
-			ss.str("");	ss << ship_velocity_y * velocity_scale << ", " << ship_angle_y;
-			DrawString({ 100,110 }, ss.str());
-#endif
 
 
 			altitude += ship_velocity_z;
@@ -487,6 +539,31 @@ public:
 			//	DrawShipAngle( ship_on_screen_pos, ship_angle_x, ship_angle_y);
 			DrawMinimap(minimap_position, ship_pos);
 			DrawGameMapOnScreen(ship_pos);
+
+			// old working ship
+			// keep him around just for comparizon
+			DrawShip(); 
+
+			DrawShipNew(oldRustyBucket);	// new version, todo: get it working!
+
+			// TODO: Must make it frame rate independent!
+			// give the update function it's trottle parameters which is normalized
+			// gotta calc send in our own throttle
+			inferiourBattleCruiser.throttle1 = throttle1;
+			inferiourBattleCruiser.throttle2 = throttle2;
+			inferiourBattleCruiser.throttle3 = throttle3;
+			inferiourBattleCruiser.throttle4 = throttle4;
+
+			updateShip(inferiourBattleCruiser, fElapsedTime);
+			DrawShipNew(inferiourBattleCruiser);	// new version, todo: get it working!
+
+// #ifdef DEBUG_PRINT
+			// Draw new ship velocity and angle
+			ss.str(""); ss << "Vel: " << inferiourBattleCruiser.vel_x << "," << inferiourBattleCruiser.vel_y << " Ang " << inferiourBattleCruiser.angle;
+			DrawString({ 100,100 }, ss.str());
+// #endif
+
+
 
 			if (!cargo_no_pickup) {
 				ship_docket_at_cargoType = CheckDropPickupOnLanding();
@@ -689,6 +766,15 @@ public:
 		game_state = state::INTRO;
 		InitGameMap();
 		ship_pos = startpos;
+
+		InitializeShip(inferiourBattleCruiser, startpos);
+		inferiourBattleCruiser.thrust = ship_max_thrust;
+		inferiourBattleCruiser.max_z = 100.0f;
+		inferiourBattleCruiser.screen_pos = ship_on_screen_pos;
+
+		oldRustyBucket = inferiourBattleCruiser;
+		oldRustyBucket.x += -10;
+		oldRustyBucket.y += 10;
 	}
 
 	void Instructions(olc::vi2d pos) {
@@ -916,7 +1002,7 @@ public:
 				DrawString({ int(cx) - 3,int(cy) - 3 }, ss.str());
 			}
 
-			
+/*			
 			dec_scale = 0.2f + 0.4f * (altitude/max_altitude);
 			center_x = ship_on_screen_pos.x - (spr_ship->width * dec_scale) / 2;
 			center_y = ship_on_screen_pos.y - (spr_ship->height * dec_scale) / 2;
@@ -941,15 +1027,6 @@ public:
 
 			// ships_angle_y: tl and tr narrow
 			//                bl and br wider
-			/*
-			tl_x = tl_x - tl_x * dec_scale * 0.1f * sin(ship_angle_y);
-			tl_y = tl_y - tl_y * dec_scale * 0.1f * sin(ship_angle_y);
-			tr_x = tr_x + tr_x * dec_scale * 0.1f * sin(ship_angle_y);
-			tr_y = tr_y - tr_y * dec_scale * 0.1f * sin(ship_angle_y);
-
-			bl_x = bl_x + bl_x * dec_scale * 0.1f * sin(ship_angle_y);
-			br_x = br_x - br_x * dec_scale * 0.1f * sin(ship_angle_y);
-			*/
 			// tilt in y -156 -> 0
 			if (ship_angle_y <= 0) {
 				tl_x = tl_x - tl_x * sin(ship_angle_y) * dec_scale * 0.1f;
@@ -1009,8 +1086,198 @@ public:
 			points[2] = { br_x, br_y };		// bottom right
 			points[3] = { tr_x, tr_y };		// top right
 			DrawWarpedDecal(dec_ship, points);
-
+*/
 		}
+	}
+
+
+	void DrawShipNew(Ship& ship) {
+
+		float angle_x = atan2(ship.y, ship.x);
+		float angle_y = atan2(ship.z, sqrt(pow(ship.x, 2) + pow(ship.y, 2)));
+
+		float dec_scale = 0.2f + 0.4f * (ship.z / ship.max_z);
+
+		float center_x = ship.screen_pos.x - (spr_ship->width * dec_scale) / 2;
+		float center_y = ship.screen_pos.y - (spr_ship->height * dec_scale) / 2;
+
+
+		// now try tilting it using ships_angle_x
+		// when tilting forward (north), tl and tr should get narrower and bl and br should get wider
+		float tl_x = ship.screen_pos.x + (spr_ship->width * dec_scale) / 2;
+		float tl_y = ship.screen_pos.y + (spr_ship->height * dec_scale) / 2;
+
+		float bl_x = ship.screen_pos.x + (spr_ship->width * dec_scale) / 2;
+		float bl_y = ship.screen_pos.y - (spr_ship->height * dec_scale) + (spr_ship->height * dec_scale) / 2;
+
+		float br_x = ship.screen_pos.x - (spr_ship->width * dec_scale) + (spr_ship->width * dec_scale) / 2;
+		float br_y = ship.screen_pos.y - (spr_ship->height * dec_scale) + (spr_ship->height * dec_scale) / 2;
+
+		float tr_x = ship.screen_pos.x - (spr_ship->width * dec_scale) + (spr_ship->width * dec_scale) / 2;
+		float tr_y = ship.screen_pos.y + (spr_ship->height * dec_scale) / 2;
+
+		// ships_angle_y: tl and tr narrow
+		//                bl and br wider
+		/*
+		tl_x = tl_x - tl_x * dec_scale * 0.1f * sin(ship_angle_y);
+		tl_y = tl_y - tl_y * dec_scale * 0.1f * sin(ship_angle_y);
+		tr_x = tr_x + tr_x * dec_scale * 0.1f * sin(ship_angle_y);
+		tr_y = tr_y - tr_y * dec_scale * 0.1f * sin(ship_angle_y);
+
+		bl_x = bl_x + bl_x * dec_scale * 0.1f * sin(ship_angle_y);
+		br_x = br_x - br_x * dec_scale * 0.1f * sin(ship_angle_y);
+		*/
+		// tilt in y -156 -> 0
+		if (angle_y <= 0) {
+			tl_x = tl_x - tl_x * sin(angle_y) * dec_scale * 0.1f;
+			tl_y = tl_y + tl_y * sin(angle_y) * dec_scale * 0.1f;
+			tr_x = tr_x + tr_x * sin(angle_y) * dec_scale * 0.1f;
+			tr_y = tr_y + tr_y * sin(angle_y) * dec_scale * 0.1f;
+
+			bl_x = bl_x + bl_x * sin(angle_y) * dec_scale * 0.1f;
+			bl_y = bl_y - bl_y * sin(angle_y) * dec_scale * 0.1f;
+			br_x = br_x - br_x * sin(angle_y) * dec_scale * 0.1f;
+			br_y = br_y - br_y * sin(angle_y) * dec_scale * 0.1f;
+		}
+
+
+		// tilt in y 0 ->  1.56
+		if (angle_y > 0) {
+			tl_x = tl_x - tl_x * sin(angle_y) * dec_scale * 0.1f;
+			tl_y = tl_y - tl_y * sin(angle_y) * dec_scale * 0.1f;
+			tr_x = tr_x + tr_x * sin(angle_y) * dec_scale * 0.1f;
+			tr_y = tr_y - tr_y * sin(angle_y) * dec_scale * 0.1f;
+
+			bl_x = bl_x + bl_x * sin(angle_y) * dec_scale * 0.1f;
+			bl_y = bl_y + bl_y * sin(angle_y) * dec_scale * 0.1f;
+			br_x = br_x - br_x * sin(angle_y) * dec_scale * 0.1f;
+			br_y = br_y + br_y * sin(angle_y) * dec_scale * 0.1f;
+		}
+
+		// tilt in x angle -1.56  -> 0
+		if (angle_x <= 0) {
+			tl_x = tl_x + tl_x * sin(angle_x) * dec_scale * 0.1f;
+			tl_y = tl_y - tl_y * sin(angle_x) * dec_scale * 0.1f;
+			tr_x = tr_x - tr_x * sin(angle_x) * dec_scale * 0.1f;
+			tr_y = tr_y + tr_y * sin(angle_x) * dec_scale * 0.1f;
+
+			bl_x = bl_x + bl_x * sin(angle_x) * dec_scale * 0.1f;
+			bl_y = bl_y + bl_y * sin(angle_x) * dec_scale * 0.1f;
+			br_x = br_x - br_x * sin(angle_x) * dec_scale * 0.1f;
+			br_y = br_y - br_y * sin(angle_x) * dec_scale * 0.1f;
+		}
+		// tilt in x angle 0  -> 1.56
+		if (angle_x > 0) {
+			tl_x = tl_x - tl_x * sin(angle_x) * dec_scale * 0.1f;
+			tl_y = tl_y - tl_y * sin(angle_x) * dec_scale * 0.1f;
+			tr_x = tr_x + tr_x * sin(angle_x) * dec_scale * 0.1f;
+			tr_y = tr_y + tr_y * sin(angle_x) * dec_scale * 0.1f;
+
+			bl_x = bl_x - bl_x * sin(angle_x) * dec_scale * 0.1f;
+			bl_y = bl_y + bl_y * sin(angle_x) * dec_scale * 0.1f;
+			br_x = br_x + br_x * sin(angle_x) * dec_scale * 0.1f;
+			br_y = br_y - br_y * sin(angle_x) * dec_scale * 0.1f;
+		}
+
+		// test warped decal drawing so we can tilt the ship.
+		// warped decal thingy
+		points[0] = { tl_x, tl_y };		// top left
+		points[1] = { bl_x, bl_y };		// bottom left
+		points[2] = { br_x, br_y };		// bottom right
+		points[3] = { tr_x, tr_y };		// top right
+		DrawWarpedDecal(dec_ship, points);
+	}
+
+	void DrawShip() {
+		float dec_scale = 0.2f + 0.4f * (altitude / max_altitude);
+		float center_x = ship_on_screen_pos.x - (spr_ship->width * dec_scale) / 2;
+		float center_y = ship_on_screen_pos.y - (spr_ship->height * dec_scale) / 2;
+
+
+		// now try tilting it using ships_angle_x
+		// when tilting forward (north), tl and tr should get narrower and bl and br should get wider
+		float tl_x = ship_on_screen_pos.x + (spr_ship->width * dec_scale) / 2;
+		float tl_y = ship_on_screen_pos.y + (spr_ship->height * dec_scale) / 2;
+
+		float bl_x = ship_on_screen_pos.x + (spr_ship->width * dec_scale) / 2;
+		float bl_y = ship_on_screen_pos.y - (spr_ship->height * dec_scale) + (spr_ship->height * dec_scale) / 2;
+
+		float br_x = ship_on_screen_pos.x - (spr_ship->width * dec_scale) + (spr_ship->width * dec_scale) / 2;
+		float br_y = ship_on_screen_pos.y - (spr_ship->height * dec_scale) + (spr_ship->height * dec_scale) / 2;
+
+		float tr_x = ship_on_screen_pos.x - (spr_ship->width * dec_scale) + (spr_ship->width * dec_scale) / 2;
+		float tr_y = ship_on_screen_pos.y + (spr_ship->height * dec_scale) / 2;
+
+		// ships_angle_y: tl and tr narrow
+		//                bl and br wider
+		/*
+		tl_x = tl_x - tl_x * dec_scale * 0.1f * sin(ship_angle_y);
+		tl_y = tl_y - tl_y * dec_scale * 0.1f * sin(ship_angle_y);
+		tr_x = tr_x + tr_x * dec_scale * 0.1f * sin(ship_angle_y);
+		tr_y = tr_y - tr_y * dec_scale * 0.1f * sin(ship_angle_y);
+
+		bl_x = bl_x + bl_x * dec_scale * 0.1f * sin(ship_angle_y);
+		br_x = br_x - br_x * dec_scale * 0.1f * sin(ship_angle_y);
+		*/
+		// tilt in y -156 -> 0
+		if (ship_angle_y <= 0) {
+			tl_x = tl_x - tl_x * sin(ship_angle_y) * dec_scale * 0.1f;
+			tl_y = tl_y + tl_y * sin(ship_angle_y) * dec_scale * 0.1f;
+			tr_x = tr_x + tr_x * sin(ship_angle_y) * dec_scale * 0.1f;
+			tr_y = tr_y + tr_y * sin(ship_angle_y) * dec_scale * 0.1f;
+
+			bl_x = bl_x + bl_x * sin(ship_angle_y) * dec_scale * 0.1f;
+			bl_y = bl_y - bl_y * sin(ship_angle_y) * dec_scale * 0.1f;
+			br_x = br_x - br_x * sin(ship_angle_y) * dec_scale * 0.1f;
+			br_y = br_y - br_y * sin(ship_angle_y) * dec_scale * 0.1f;
+		}
+
+
+		// tilt in y 0 ->  1.56
+		if (ship_angle_y > 0) {
+			tl_x = tl_x - tl_x * sin(ship_angle_y) * dec_scale * 0.1f;
+			tl_y = tl_y - tl_y * sin(ship_angle_y) * dec_scale * 0.1f;
+			tr_x = tr_x + tr_x * sin(ship_angle_y) * dec_scale * 0.1f;
+			tr_y = tr_y - tr_y * sin(ship_angle_y) * dec_scale * 0.1f;
+
+			bl_x = bl_x + bl_x * sin(ship_angle_y) * dec_scale * 0.1f;
+			bl_y = bl_y + bl_y * sin(ship_angle_y) * dec_scale * 0.1f;
+			br_x = br_x - br_x * sin(ship_angle_y) * dec_scale * 0.1f;
+			br_y = br_y + br_y * sin(ship_angle_y) * dec_scale * 0.1f;
+		}
+
+		// tilt in x angle -1.56  -> 0
+		if (ship_angle_x <= 0) {
+			tl_x = tl_x + tl_x * sin(ship_angle_x) * dec_scale * 0.1f;
+			tl_y = tl_y - tl_y * sin(ship_angle_x) * dec_scale * 0.1f;
+			tr_x = tr_x - tr_x * sin(ship_angle_x) * dec_scale * 0.1f;
+			tr_y = tr_y + tr_y * sin(ship_angle_x) * dec_scale * 0.1f;
+
+			bl_x = bl_x + bl_x * sin(ship_angle_x) * dec_scale * 0.1f;
+			bl_y = bl_y + bl_y * sin(ship_angle_x) * dec_scale * 0.1f;
+			br_x = br_x - br_x * sin(ship_angle_x) * dec_scale * 0.1f;
+			br_y = br_y - br_y * sin(ship_angle_x) * dec_scale * 0.1f;
+		}
+		// tilt in x angle 0  -> 1.56
+		if (ship_angle_x > 0) {
+			tl_x = tl_x - tl_x * sin(ship_angle_x) * dec_scale * 0.1f;
+			tl_y = tl_y - tl_y * sin(ship_angle_x) * dec_scale * 0.1f;
+			tr_x = tr_x + tr_x * sin(ship_angle_x) * dec_scale * 0.1f;
+			tr_y = tr_y + tr_y * sin(ship_angle_x) * dec_scale * 0.1f;
+
+			bl_x = bl_x - bl_x * sin(ship_angle_x) * dec_scale * 0.1f;
+			bl_y = bl_y + bl_y * sin(ship_angle_x) * dec_scale * 0.1f;
+			br_x = br_x + br_x * sin(ship_angle_x) * dec_scale * 0.1f;
+			br_y = br_y - br_y * sin(ship_angle_x) * dec_scale * 0.1f;
+		}
+
+		// test warped decal drawing so we can tilt the ship.
+		// warped decal thingy
+		points[0] = { tl_x, tl_y };		// top left
+		points[1] = { bl_x, bl_y };		// bottom left
+		points[2] = { br_x, br_y };		// bottom right
+		points[3] = { tr_x, tr_y };		// top right
+		DrawWarpedDecal(dec_ship, points);
 	}
 
 	void DrawMinimap(olc::vi2d mm_pos, olc::vf2d ship_pos) {
