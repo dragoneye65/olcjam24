@@ -99,9 +99,9 @@ public:
 	olc::vf2d ship_pos;
 
 	// world
-	float gravity = 9.81f;									//  9.81 m/s^2
+	float gravity = 0.4f;
 	float altitude = 0.0f;									// 0m  sea level
-	float max_altitude = 100.0f;
+	float max_altitude = 140.0f;
 	olc::vf2d world_max = { 500.0f,500.0f };
 
 	olc::vi2d ship_on_screen_pos;
@@ -467,7 +467,7 @@ public:
 
 			// Gravity
 			// ship_velocity_z -= fElapsedTime  * 0.001f * ship_weight * gravity;
-			gravity = 9.81f/20;  // 0.5'ish
+
 			ship_velocity_z -= fElapsedTime * gameSpeed * gravity;
 			ship_velocity_z -= fElapsedTime * ship_weight * 0.001; // normalize weight
 			ship_velocity_x += fElapsedTime * gameSpeed * sin(ship_angle_x);
