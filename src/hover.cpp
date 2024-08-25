@@ -27,11 +27,15 @@ public:
 	olc::sound::Wave wave_pickup;
 	olc::sound::Wave wave_drop;
 	olc::sound::Wave wave_purge;
+	olc::sound::Wave wave_bgm;
+	olc::sound::Wave wave_engine_sound;
 	olc::sound::PlayingWave it_altitude_alert;
 	olc::sound::PlayingWave it_crash;
 	olc::sound::PlayingWave it_pickup;
 	olc::sound::PlayingWave it_drop;
 	olc::sound::PlayingWave it_purge;
+	olc::sound::PlayingWave it_bgm;
+	olc::sound::PlayingWave it_engine_sound;
 
 	olc::Sprite* spr_orb = nullptr;	olc::Decal* dec_orb = nullptr;
 	olc::Sprite* spr_chest = nullptr;	olc::Decal* dec_chest = nullptr;
@@ -48,6 +52,8 @@ public:
 	bool sound_drop_play = false;
 	bool sound_pickup_play = false;
 	bool sound_purge_play = false;
+
+	double engine_sound_speed = 1.0;
 
 	// first char based game map, don't need it, can generate it
 	std::string game_map;
@@ -245,12 +251,19 @@ public:
 		wave_engine.InitialiseAudio();
 
 		// std::string sound_file_path;
+		wave_bgm.LoadAudioWaveform("./res/wav/bgm.wav");
+		wave_engine.PlayWaveform(&wave_bgm, true);
 
 		wave_altitude_alert.LoadAudioWaveform("./res/wav/altitude_alert.wav");
 		wave_pickup.LoadAudioWaveform( "./res/wav/pickup.wav");
 		wave_drop.LoadAudioWaveform( "./res/wav/drop.wav");
 		wave_crash.LoadAudioWaveform( "./res/wav/crash.wav");
 		wave_purge.LoadAudioWaveform("./res/wav/purge.wav");
+
+		wave_engine_sound.LoadAudioWaveform("./res/wav/engine2.wav");
+		it_engine_sound = wave_engine.PlayWaveform(&wave_engine_sound, true, 1.0);
+		wave_engine.SetOutputVolume(0.0f);
+		// it_engine_sound->bFlagForStop = true;
 
 		spr_orb = new olc::Sprite("./res/img/orb.png");	dec_orb = new olc::Decal(spr_orb);
 		spr_chest = new olc::Sprite("./res/img/chest.png");	dec_chest = new olc::Decal(spr_chest);
@@ -270,6 +283,7 @@ public:
 		oldRustyBucket = inferiourBattleCruiser;
 		oldRustyBucket.x += 10.0f;
 		oldRustyBucket.y -= 10.0f;
+
 
 		return true;
 	}
@@ -460,6 +474,9 @@ public:
 				ship_autolevel_toggle = !ship_autolevel_toggle;
 			}
 
+			if ( ship_autolevel_toggle)
+				DrawString({ ScreenWidth()/2-12*8/2, 25 }, "Autoleveling ON",olc::GREEN);
+
 			// reset the throttle to neutral position
 			if (GetKey(olc::Key::T).bPressed) {
 				ship_autothrottle_toggle = !ship_autothrottle_toggle;
@@ -589,6 +606,12 @@ public:
 				ship_velocity_y = 0.0f; // y
 				ship_velocity_z = 0.0f; // z
 			}
+
+			// engine speed sound reletive to the avg throttle
+			engine_sound_speed = 1.0 + 2.0 * ship_avr_throttle;
+			it_engine_sound->dSpeedModifier = engine_sound_speed * it_engine_sound->pWave->file.samplerate() / 44100.0;
+			it_engine_sound->dDuration = it_engine_sound->pWave->file.duration() / engine_sound_speed;
+
 
 			// Moved to DrawGameMapOnScreen() doe to the z-order of drawing, ship is on top, ie last
 			// DrawShipOnScreen(ship_on_screen_pos, 10, 20, altitude); // x,y,engine minsize, maxsize, altitude
@@ -770,10 +793,12 @@ public:
 			throttle3 = 0.0f;
 			throttle4 = 0.0f;
 
-
 			Instructions(instructions_pos);
 			if (GetKey(olc::Key::ENTER).bPressed || GetKey(olc::Key::SPACE).bPressed) {
 				game_state = state::GAMEON;
+
+				// set sound on
+				wave_engine.SetOutputVolume(0.8f);
 			}
 		}
 
@@ -783,8 +808,10 @@ public:
 
 			// SPACE: continue if not crashed, restarts if crashed
 			if (GetKey(olc::Key::SPACE).bReleased) {
-				if (!ship_crashed)
+				if (!ship_crashed) {
 					game_state = state::GAMEON;
+					wave_engine.SetOutputVolume(0.8f);
+				}
 				else
 					RestartGame();
 
@@ -804,7 +831,7 @@ public:
 
 
 		// Escape to THEEND, or quit if pressed while in THEEND state
-		if (GetKey(olc::Key::ESCAPE).bPressed) {
+		if (GetKey(olc::Key::ESCAPE).bPressed || GetKey(olc::Key::BACK).bPressed) {
 			if (game_state == state::THEEND) {
 				return false;
 			}
@@ -813,6 +840,10 @@ public:
 			}
 		}
 
+		// If not playing, kill the volume
+		if (game_state != state::GAMEON) {
+			wave_engine.SetOutputVolume(0.0f);
+		}
 
 #ifdef DEBUG_PRINT
 		// show center of screen crossheir
@@ -887,6 +918,7 @@ public:
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                 SPACE Toggle autoleveling                 ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                  P Purge from inventory                   ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                     Author: DragonEye                     ", olc::DARK_GREEN);
 	}
 
@@ -906,13 +938,13 @@ public:
 			DrawString({ offsx + 10, asdf + offsy * 6 }, "Groundbreaking velocity:", olc::GREY);
 			ss.str(""); ss << last_velocity_before_crashlanding*15.0f;
 			DrawString({ offsx + 10 + 28 * 8, asdf + offsy * 6 }, ss.str(), olc::RED);
-			DrawString({ offsx + 10, asdf + offsy * 18 }, "SPACE/ENTER to restart, ESC to quit", olc::RED);
+			DrawString({ offsx + 10, asdf + offsy * 18 }, "SPACE/ENTER to restart, ESC/BACK to quit", olc::RED);
 		}
 		else {
 			DrawString({ offsx + 10, asdf + offsy * 1 }, "        User aborted!", olc::GREY);
 			DrawString({ offsx + 10, asdf + offsy * 7 }, "I am sorry to see you go...", olc::GREY);
 			DrawString({ offsx + 10, asdf + offsy * 8 }, "  Hope you had fun! L8r o7 ", olc::GREY);
-			DrawString({ offsx + 10, asdf + offsy * 16 }, " SPACE (Continue)", olc::GREEN);
+			DrawString({ offsx + 10, asdf + offsy * 16 }, " SPACE/BACK (Continue)", olc::GREEN);
 			DrawString({ offsx + 10, asdf + offsy * 17 }, " ENTER (Restart)", olc::YELLOW);
 			DrawString({ offsx + 10, asdf + offsy * 18 }, " ESC   (quit)", olc::RED);
 		}
@@ -950,7 +982,7 @@ public:
 		DrawString({ offsx + 22 * 8, asdf + offsy * 8 }, " runs", olc::GREEN);
 
 		DrawString({ offsx + 10, asdf + offsy * 14 }, " Press Space or Enter to try again.", olc::GREEN);
-		DrawString({ offsx + 10, asdf + offsy * 15 }, "           Esc to quit", olc::RED);
+		DrawString({ offsx + 10, asdf + offsy * 15 }, "           Esc/Back to quit", olc::RED);
 
 	}
 
