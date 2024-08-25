@@ -63,7 +63,7 @@ public:
 	enum state game_state = state::INTRO;
 	float game_critical_landing_velocity = -190.0f;
 	float game_object_proximity_limit = 10.0f;
-	float game_clip_objects_radius = 150.0f;
+	float game_clip_objects_radius = 120.0f;
 
 	olc::vi2d mouse_pos, mouse_pos_old;
 
@@ -1098,6 +1098,33 @@ public:
 		float cy;
 		olc::Pixel col = olc::GREEN;
 
+		// draw background first
+		for (int i = 0; i < cargos.size(); ++i) {
+			cx = (cargos[i].pos.x - ship_pos.x + ship_on_screen_pos.x);
+			cy = (cargos[i].pos.y - ship_pos.y + ship_on_screen_pos.y);
+
+			float dec_scale;
+			float dec_scaley;
+
+			float center_y;
+			float center_x;
+			// don't draw the object if it is outside the clip radius
+			if (sqrt((ship_pos.x - cargos[i].pos.x) * (ship_pos.x - cargos[i].pos.x) + (ship_pos.y - cargos[i].pos.y) * (ship_pos.y - cargos[i].pos.y)) < game_clip_objects_radius) {
+				//				DrawDecal(olc::vf2d{ cx - 12, cy - 13 }, dec_bg_tile, olc::vf2d{ 0.01f,0.01f });
+
+				dec_scale = 0.25f;
+				dec_scaley = 0.50;
+				center_x = cx - (spr_bg_tile->width * dec_scale) / 2;
+				center_y = cy - (spr_bg_tile->height * dec_scaley) / 2;
+				DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ dec_scale,dec_scaley });
+			}
+		}
+
+
+
+
+
+		// then draw the objects on top
 		for (int i = 0; i < cargos.size(); ++i) {
 			cx = (cargos[i].pos.x - ship_pos.x + ship_on_screen_pos.x);
 			cy = (cargos[i].pos.y - ship_pos.y + ship_on_screen_pos.y);
@@ -1119,13 +1146,6 @@ public:
 			float center_x;
 			// don't draw the object if it is outside the clip radius
 			if (sqrt((ship_pos.x - cargos[i].pos.x) * (ship_pos.x - cargos[i].pos.x) + (ship_pos.y - cargos[i].pos.y) * (ship_pos.y - cargos[i].pos.y)) < game_clip_objects_radius) {
-//				DrawDecal(olc::vf2d{ cx - 12, cy - 13 }, dec_bg_tile, olc::vf2d{ 0.01f,0.01f });
-
-				dec_scale = 0.25f;
-				dec_scaley = 0.50;
-				center_x = cx - (spr_bg_tile->width * dec_scale) / 2;
-				center_y = cy - (spr_bg_tile->height * dec_scaley) / 2;
-				DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ dec_scale,dec_scaley });
 
 				switch (cargos[i].cargoType)
 				{
