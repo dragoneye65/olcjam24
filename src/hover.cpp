@@ -192,6 +192,7 @@ public:
 		char ch;
 		for (int y = 0; y < charmap_dim.y; y++) {
 			for (int x = 0; x < charmap_dim.x; x++) {
+				// draw background images here
 
 				switch (ch = game_map[y * charmap_dim.x + x])
 				{
@@ -202,6 +203,10 @@ public:
 				case 'd':	// dropzone
 					dropzone = { float(x * sx),float(y * sy) };
 					cargos.push_back({ dropzone,ch });
+					break;
+				case ' ':
+					dropzone = { float(x * sx),float(y * sy) };
+					cargos.push_back({ {float(x) * sx,float(y) * sy},ch });
 					break;
 				default:
 					if (isdigit(ch)) {
@@ -233,7 +238,18 @@ public:
 		//	  0:stationary (usually just bomb it)
 		//  1-5: moveable  (pic up and drop these different cargo types)
 		//  6-9: running   (now we are talking, pick up or bomb those running suckers)
-		game_map = "9              9";
+/*		game_map = "9              9";
+		game_map += "     0   0      ";
+		game_map += "  5         3   " ;
+		game_map += "       2        " ;
+		game_map += "   d  2*2  1    ";
+		game_map += "       2        ";
+		game_map += "    0    6      ";
+		game_map += "                ";
+		game_map += "     2      8   ";
+		game_map += "9      3       9";
+*/
+		game_map  = "9              9";
 		game_map += "     0   0      ";
 		game_map += "  5         3   ";
 		game_map += "       2        ";
@@ -270,7 +286,7 @@ public:
 		spr_orb = new olc::Sprite("./res/img/orb.png");	dec_orb = new olc::Decal(spr_orb);
 		spr_chest = new olc::Sprite("./res/img/chest.png");	dec_chest = new olc::Decal(spr_chest);
 		spr_startpad = new olc::Sprite("./res/img/startpad.png");	dec_startpad = new olc::Decal(spr_startpad);
-		spr_bg_tile = new olc::Sprite("./res/img/background_tile.png");	dec_bg_tile = new olc::Decal(spr_bg_tile);
+		spr_bg_tile = new olc::Sprite("./res/img/bg_tile.png");	dec_bg_tile = new olc::Decal(spr_bg_tile);
 		spr_ship = new olc::Sprite("./res/img/ship.png");	dec_ship = new olc::Decal(spr_ship);
 
 
@@ -1061,7 +1077,8 @@ public:
 						if (isdigit(cargos[i].cargoType)) {
 							inventory.push_back(cargos[i]);
 							sound_pickup_play = true;
-							cargos.erase(cargos.begin() + i);  // off the map with it
+							// cargos.erase(cargos.begin() + i);  // off the map with it
+							cargos[i].cargoType = ' ';	// do not erase, but change it to gb_tile
 						}
 						else {
 							// if it is the drop point, yay happy you, unload and be happy
@@ -1107,11 +1124,19 @@ public:
 			}
 
 			float dec_scale;
+			float dec_scaley;
+
 			float center_y;
 			float center_x;
 			// don't draw the object if it is outside the clip radius
 			if (sqrt((ship_pos.x - cargos[i].pos.x) * (ship_pos.x - cargos[i].pos.x) + (ship_pos.y - cargos[i].pos.y) * (ship_pos.y - cargos[i].pos.y)) < game_clip_objects_radius) {
-				// DrawDecal(olc::vf2d{ cx - 12, cy - 13 }, dec_bg_tile, olc::vf2d{ 0.01f,0.01f });
+//				DrawDecal(olc::vf2d{ cx - 12, cy - 13 }, dec_bg_tile, olc::vf2d{ 0.01f,0.01f });
+
+				dec_scale = 0.25f;
+				dec_scaley = 0.50;
+				center_x = cx - (spr_bg_tile->width * dec_scale) / 2;
+				center_y = cy - (spr_bg_tile->height * dec_scaley) / 2;
+				DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ dec_scale,dec_scaley });
 
 				switch (cargos[i].cargoType)
 				{
@@ -1127,6 +1152,8 @@ public:
 					center_y = cy - (spr_chest->height * dec_scale) / 2;
 					DrawDecal(olc::vf2d{ center_x, center_y }, dec_chest, olc::vf2d{ dec_scale,dec_scale });
 					break;
+				case ' ':
+					break;
 				default:
 					// Draw the orb
 					dec_scale = 0.1f;
@@ -1136,9 +1163,11 @@ public:
 					break;
 				}
 
-				// DrawCircle({ int(cx),int(cy) }, 10, col);
-				ss.str(""); ss << std::setw(1) << static_cast<char>(cargos[i].cargoType);
-				DrawString({ int(cx) - 3,int(cy) - 3 }, ss.str());
+				if (cargos[i].cargoType != ' ') {
+					// DrawCircle({ int(cx),int(cy) }, 10, col);
+					ss.str(""); ss << std::setw(1) << static_cast<char>(cargos[i].cargoType);
+					DrawString({ int(cx) - 3,int(cy) - 3 }, ss.str());
+				}
 			}
 
 /*			
@@ -1425,7 +1454,8 @@ public:
 
 		// draw cargos
 		for (int i = 0; i < cargos.size(); ++i) {
-			FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::GREEN);
+			if ( cargos[i].cargoType != ' ')
+				FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::GREEN);
 		}
 
 		// draw dropzone
