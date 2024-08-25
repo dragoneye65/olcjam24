@@ -400,25 +400,39 @@ public:
 			// Add mouse support
 			mouse_wheel_old = mouse_wheel;
 			mouse_wheel = GetMouseWheel();
-			int mouse_dead_zone = 20;
+			int mouse_dead_zone;
+			mouse_dead_zone = 10;
+
+			olc::vf2d mouse_ship_response;
+			mouse_ship_response.x = fabs(mouse_pos.x - ship_on_screen_pos.x); 
+			mouse_ship_response.y = fabs(mouse_pos.y - ship_on_screen_pos.y); 
+
+			if (ship_autolevel_toggle) {
+				mouse_ship_response.x *= 0.05f;
+				mouse_ship_response.y *= 0.05f;
+			}
+			else if (!ship_autolevel_toggle) {
+				mouse_ship_response.x *= 0.01f;
+				mouse_ship_response.y *= 0.01f;
+			}
 
 			// move right 
-			if (mouse_pos.x >= ship_on_screen_pos.x + mouse_dead_zone) {
-				throttle1 += fElapsedTime * ship_response;
-				throttle2 += fElapsedTime * ship_response;
-				throttle3 -= fElapsedTime * ship_response;
-				throttle4 -= fElapsedTime * ship_response;
+			if (mouse_pos.x >= (ship_on_screen_pos.x + mouse_dead_zone)) {
+				throttle1 += fElapsedTime * mouse_ship_response.x;
+				throttle2 += fElapsedTime * mouse_ship_response.x;
+				throttle3 -= fElapsedTime * mouse_ship_response.x;
+				throttle4 -= fElapsedTime * mouse_ship_response.x;
 				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
 				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
 				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
 				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
 			}
 			// move left 
-			if (mouse_pos.x < ship_on_screen_pos.x - mouse_dead_zone) {
-				throttle1 -= fElapsedTime * ship_response;
-				throttle2 -= fElapsedTime * ship_response;
-				throttle3 += fElapsedTime * ship_response;
-				throttle4 += fElapsedTime * ship_response;
+			if (mouse_pos.x < (ship_on_screen_pos.x - mouse_dead_zone)) {
+				throttle1 -= fElapsedTime * mouse_ship_response.x;
+				throttle2 -= fElapsedTime * mouse_ship_response.x;
+				throttle3 += fElapsedTime * mouse_ship_response.x;
+				throttle4 += fElapsedTime * mouse_ship_response.x;
 				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
 				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
 				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
@@ -426,11 +440,11 @@ public:
 			}
 
 			// move down
-			if (mouse_pos.y >= ship_on_screen_pos.y + mouse_dead_zone) {
-				throttle1 += fElapsedTime * ship_response;
-				throttle2 -= fElapsedTime * ship_response;
-				throttle3 -= fElapsedTime * ship_response;
-				throttle4 += fElapsedTime * ship_response;
+			if (mouse_pos.y >= (ship_on_screen_pos.y + mouse_dead_zone)) {
+				throttle1 += fElapsedTime * mouse_ship_response.y;
+				throttle2 -= fElapsedTime * mouse_ship_response.y;
+				throttle3 -= fElapsedTime * mouse_ship_response.y;
+				throttle4 += fElapsedTime * mouse_ship_response.y;
 				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle; if (throttle1 > 1.0) throttle1 = 1.0;
 				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle; if (throttle2 > 1.0) throttle2 = 1.0;
 				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle; if (throttle3 > 1.0) throttle3 = 1.0;
@@ -438,11 +452,11 @@ public:
 			}
 
 			// move down
-			if (mouse_pos.y < ship_on_screen_pos.y - mouse_dead_zone) {
-				throttle1 -= fElapsedTime * ship_response;
-				throttle2 += fElapsedTime * ship_response;
-				throttle3 += fElapsedTime * ship_response;
-				throttle4 -= fElapsedTime * ship_response;
+			if (mouse_pos.y < (ship_on_screen_pos.y - mouse_dead_zone)) {
+				throttle1 -= fElapsedTime * mouse_ship_response.y;
+				throttle2 += fElapsedTime * mouse_ship_response.y;
+				throttle3 += fElapsedTime * mouse_ship_response.y;
+				throttle4 -= fElapsedTime * mouse_ship_response.y;
 				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
 				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
 				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
@@ -455,11 +469,15 @@ public:
 			ship_throttle_key_held = false;
 			// power to all engines
 			if (GetKey(olc::Key::UP).bHeld || mouse_wheel > 0) {
+				float mouse_response = 1.0f;
+				if (mouse_wheel > 0)
+					mouse_response = 2.0f;
+
 				if (altitude < max_altitude) {
-					throttle1 += fElapsedTime * ship_response * boostScale; if (throttle1 > 1.0 * boostScale) throttle1 = 1.0 * boostScale;
-					throttle2 += fElapsedTime * ship_response * boostScale; if (throttle2 > 1.0 * boostScale) throttle2 = 1.0 * boostScale;
-					throttle3 += fElapsedTime * ship_response * boostScale; if (throttle3 > 1.0 * boostScale) throttle3 = 1.0 * boostScale;
-					throttle4 += fElapsedTime * ship_response * boostScale; if (throttle4 > 1.0 * boostScale) throttle4 = 1.0 * boostScale;
+					throttle1 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle1 > 1.0 * boostScale) throttle1 = 1.0 * boostScale;
+					throttle2 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle2 > 1.0 * boostScale) throttle2 = 1.0 * boostScale;
+					throttle3 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle3 > 1.0 * boostScale) throttle3 = 1.0 * boostScale;
+					throttle4 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle4 > 1.0 * boostScale) throttle4 = 1.0 * boostScale;
 					ship_throttle_key_held = true;
 					auto_alt_hold = altitude;
 				}
