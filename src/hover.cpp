@@ -205,7 +205,6 @@ public:
 					cargos.push_back({ dropzone,ch });
 					break;
 				case ' ':
-					dropzone = { float(x * sx),float(y * sy) };
 					cargos.push_back({ {float(x) * sx,float(y) * sy},ch });
 					break;
 				default:
@@ -238,7 +237,7 @@ public:
 		//	  0:stationary (usually just bomb it)
 		//  1-5: moveable  (pic up and drop these different cargo types)
 		//  6-9: running   (now we are talking, pick up or bomb those running suckers)
-/*		game_map = "9              9";
+		game_map = "9              9";
 		game_map += "     0   0      ";
 		game_map += "  5         3   " ;
 		game_map += "       2        " ;
@@ -248,17 +247,7 @@ public:
 		game_map += "                ";
 		game_map += "     2      8   ";
 		game_map += "9      3       9";
-*/
-		game_map  = "9              9";
-		game_map += "     0   0      ";
-		game_map += "  5         3   ";
-		game_map += "       2        ";
-		game_map += "   d  2*2  1    ";
-		game_map += "       2        ";
-		game_map += "    0    6      ";
-		game_map += "                ";
-		game_map += "     2      8   ";
-		game_map += "9      3       9";
+
 
 		ship_on_screen_pos = { ScreenWidth() / 2,ScreenHeight() / 2 };
 		minimap_position = { ScreenWidth() - minimap_size.x - 2, 10 };
