@@ -375,8 +375,8 @@ public:
 
 
 		// show mouse cursor + position
-		DrawLine(mouse_pos - olc::vi2d{ 5,5 }, mouse_pos + olc::vi2d{ 5,5 }, olc::RED);
-		DrawLine(mouse_pos - olc::vi2d{ -5,5 }, mouse_pos + olc::vi2d{ -5,5 }, olc::RED);
+		DrawLineDecal(mouse_pos - olc::vi2d{ 5,5 }, mouse_pos + olc::vi2d{ 5,5 }, olc::RED);
+		DrawLineDecal(mouse_pos - olc::vi2d{ -5,5 }, mouse_pos + olc::vi2d{ -5,5 }, olc::RED);
 		//ss.str(""); ss << "(" << mouse_pos.x << "," << mouse_pos.y << ")";
 		// DrawString(mouse_pos, ss.str(), olc::RED);
 
@@ -866,6 +866,11 @@ public:
 					sound_purge_play = true;
 				}
 			}
+
+			// show mouse cursor + position
+			DrawLineDecal(mouse_pos - olc::vi2d{ 5,5 }, mouse_pos + olc::vi2d{ 5,5 }, olc::WHITE);
+			DrawLineDecal(mouse_pos - olc::vi2d{ -5,5 }, mouse_pos + olc::vi2d{ -5,5 }, olc::WHITE);
+
 
 		} // endif: state_GAMEON ---
 
