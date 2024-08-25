@@ -944,9 +944,9 @@ public:
 			DrawString({ offsx + 10, asdf + offsy * 1 }, "        User aborted!", olc::GREY);
 			DrawString({ offsx + 10, asdf + offsy * 7 }, "I am sorry to see you go...", olc::GREY);
 			DrawString({ offsx + 10, asdf + offsy * 8 }, "  Hope you had fun! L8r o7 ", olc::GREY);
-			DrawString({ offsx + 10, asdf + offsy * 16 }, " SPACE/BACK (Continue)", olc::GREEN);
-			DrawString({ offsx + 10, asdf + offsy * 17 }, " ENTER (Restart)", olc::YELLOW);
-			DrawString({ offsx + 10, asdf + offsy * 18 }, " ESC   (quit)", olc::RED);
+			DrawString({ offsx + 10, asdf + offsy * 16 }, " SPACE    (Continue)", olc::GREEN);
+			DrawString({ offsx + 10, asdf + offsy * 17 }, " ENTER    (Restart)", olc::YELLOW);
+			DrawString({ offsx + 10, asdf + offsy * 18 }, " ESC/BACK (quit)", olc::RED);
 		}
 		DrawString({ offsx + 10, asdf + offsy * 3 }, "Score: ", olc::GREY);
 		ss.str(""); ss << std::setw(5) << player_points;
