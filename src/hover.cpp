@@ -66,6 +66,7 @@ public:
 	int player_deliveries = 0;
 
 	// ship, 4 engines 
+	float boostScale = 1.0f;
 	float throttle1 = { 0.0f };										// 0-100% [0.0 - 1.0]
 	float throttle2 = { 0.0f };										// 0-100% [0.0 - 1.0]
 	float throttle3 = { 0.0f };										// 0-100% [0.0 - 1.0]
@@ -96,7 +97,6 @@ public:
 	float ship_angle_x = 0.0;
 	float ship_angle_y = 0.0;
 	olc::vf2d ship_pos;
-	float velocity_scale = 100.0;
 
 	// world
 	float gravity = 9.81f;									//  9.81 m/s^2
@@ -211,6 +211,8 @@ public:
 	{
 		// Called once at the start, so create things here
 
+		boostScale = 1.0f;
+
 		// *: starting position
 		// u: unloading pad
 		// 0-9: cargo type, 
@@ -264,25 +266,6 @@ public:
 		oldRustyBucket.y -= 10.0f;
 
 		return true;
-	}
-
-	void InitializeShip(Ship& ship, olc::vf2d pos) {
-	
-		ship.angle = 0.0f;
-		ship.maxSpeed = 100.0f;
-		ship.throttle1 = 0.1f;
-		ship.throttle2 = 0.1f;
-		ship.throttle3 = 0.1f;
-		ship.throttle4 = 0.1f;
-		ship.thrust = 0.0f;
-		ship.x = 0.0f;
-		ship.y = 0.0f;
-		ship.z = 0.0f;
-		ship.vel_x = 0.0f;
-		ship.vel_y = 0.0f;
-		ship.vel_z = 0.0f;
-		ship.max_z = 100.0f;
-		ship.screen_pos = pos;
 	}
 
 	void TimerUpdateTrigger(float fElapsedTime, float time_until_trigger) {
@@ -359,31 +342,15 @@ public:
 		Clear(olc::VERY_DARK_BLUE);
 
 
-#ifdef DEBUG_PRINT
 		// show mouse cursor + position
 		DrawLine(mouse_pos - olc::vi2d{ 5,5 }, mouse_pos + olc::vi2d{ 5,5 }, olc::RED);
 		DrawLine(mouse_pos - olc::vi2d{ -5,5 }, mouse_pos + olc::vi2d{ -5,5 }, olc::RED);
-		ss.str(""); ss << "(" << mouse_pos.x << "," << mouse_pos.y << ")";
-		DrawString(mouse_pos, ss.str(), olc::RED);
-#endif
+		//ss.str(""); ss << "(" << mouse_pos.x << "," << mouse_pos.y << ")";
+		// DrawString(mouse_pos, ss.str(), olc::RED);
 
 
 		if (game_state == state::GAMEON) {
 
-#ifdef DEBUG_PRINT
-			// draw velocity
-			int vel_pos_x = ship_on_screen_pos.x - 50;
-			int vel_pos_y = ship_on_screen_pos.y + 110;
-			tmpstr = ""; int offx = 0;
-			for (int i = 0; i < 3; i++) {
-				ss.str("");
-				ss << ship_velocity[i] * velocity_scale; 	// todo: get rid of this velocity_scale
-				if (i == 0) { tmpstr += " { " + ss.str(); offx = 0; }
-				else { tmpstr = ss.str(); offx = 20; }
-				if (i != 2) tmpstr += ", "; else tmpstr += " }";
-				DrawString({ vel_pos_x + i * 55 + offx,vel_pos_y }, tmpstr, olc::YELLOW);
-			}
-#endif
 
 			// calculate angle from thrust differentials (simple version) max angle = 45 deg
 			// todo: wrong way, must improve...
@@ -391,12 +358,21 @@ public:
 			ship_angle_x = pi_2 * (((throttle1 + throttle2) - (throttle3 + throttle4)) / 2);
 			ship_angle_y = pi_2 * ((throttle1 + throttle4) - (throttle2 + throttle3)) / 2;
 
+			// boost throttle if shift is held
+			if (GetKey(olc::Key::SHIFT).bHeld)
+				boostScale = 4.0f;
+			else 
+				boostScale = 1.0f;
+
 			// power to all engines
 			if (GetKey(olc::Key::UP).bHeld) {
-				throttle1 += fElapsedTime * ship_response; if (throttle1 > 1.0) throttle1 = 1.0;
-				throttle2 += fElapsedTime * ship_response; if (throttle2 > 1.0) throttle2 = 1.0;
-				throttle3 += fElapsedTime * ship_response; if (throttle3 > 1.0) throttle3 = 1.0;
-				throttle4 += fElapsedTime * ship_response; if (throttle4 > 1.0) throttle4 = 1.0;
+				if (altitude < max_altitude) {
+					throttle1 += fElapsedTime * ship_response * boostScale; if (throttle1 > 1.0 * boostScale) throttle1 = 1.0 * boostScale;
+					throttle2 += fElapsedTime * ship_response * boostScale; if (throttle2 > 1.0 * boostScale) throttle2 = 1.0 * boostScale;
+					throttle3 += fElapsedTime * ship_response * boostScale; if (throttle3 > 1.0 * boostScale) throttle3 = 1.0 * boostScale;
+					throttle4 += fElapsedTime * ship_response * boostScale; if (throttle4 > 1.0 * boostScale) throttle4 = 1.0 * boostScale;
+				}
+
 			}
 
 			if (GetKey(olc::Key::DOWN).bHeld) {
@@ -471,31 +447,47 @@ public:
 				throttle4 = ship_avr_throttle;
 			}
 
+			// velocity = distance * time
+			// position = velocity * time
+			// acceleration += gravity * time
+			// cap acceleration to gravity
 
-			// thrust
-			// ship_velocity_z += fElapsedTime * 0.000005f * (ship_max_thrust)*cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;2
-			ship_velocity_z += fElapsedTime * 0.0005f  * (ship_max_thrust)*cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;
+			// ss.str(""); ss << "Vel " << std::setw(6) << ship_velocity_z;
+			// DrawString({ 20,200 }, ss.str(), olc::YELLOW);
+
+			float gameSpeed = 20.0f;
+			// to hight, auto throtteling down
+			if (altitude >= max_altitude)
+				ship_velocity_z = 0.0;
+			else
+				// thrust
+				ship_velocity_z += fElapsedTime * gameSpeed *cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;
+				// ship_velocity_z += 200.0f *  fElapsedTime;
+				// ship_velocity_z += fElapsedTime * 0.005f * (ship_max_thrust)*cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;
+
 			// Gravity
-			// ship_velocity_z -= fElapsedTime /* * 0.000001f */ * ship_weight * gravity;
-			ship_velocity_z -= fElapsedTime  * 0.0001f * ship_weight * gravity;
+			// ship_velocity_z -= fElapsedTime  * 0.001f * ship_weight * gravity;
+			gravity = 9.81f/20;  // 0.5'ish
+			ship_velocity_z -= fElapsedTime * gameSpeed * gravity;
+			ship_velocity_z -= fElapsedTime * ship_weight * 0.001; // normalize weight
+			ship_velocity_x += fElapsedTime * gameSpeed * sin(ship_angle_x);
+			ship_velocity_y += fElapsedTime * gameSpeed * sin(ship_angle_y);
 
+			
 			if (game_state == state::GAMEON)
-				last_velocity_before_crashlanding = ship_velocity_z * velocity_scale;    // for checking if you crashed hard into ground
-
-			ship_velocity_x += fElapsedTime * sin(ship_angle_x);
-			ship_velocity_y += fElapsedTime * sin(ship_angle_y);
+				last_velocity_before_crashlanding = ship_velocity_z; // *velocity_scale;    // for checking if you crashed hard into ground
 
 
-			altitude += ship_velocity_z;
+			altitude += fElapsedTime * gameSpeed * ship_velocity_z;
 
 			// cap ship velocity in xy
-			if ((ship_velocity_x * velocity_scale) > ship_cap_vel_xy.x) 	ship_velocity_x = ship_cap_vel_xy.x / velocity_scale;
-			if ((ship_velocity_x * velocity_scale) < -ship_cap_vel_xy.x)	ship_velocity_x = -(ship_cap_vel_xy.x / velocity_scale);
-			if ((ship_velocity_y * velocity_scale) > ship_cap_vel_xy.y) 	ship_velocity_y = ship_cap_vel_xy.y / velocity_scale;
-			if ((ship_velocity_y * velocity_scale) < -ship_cap_vel_xy.y)	ship_velocity_y = -(ship_cap_vel_xy.y / velocity_scale);
+			if ((ship_velocity_x /* * velocity_scale */) > ship_cap_vel_xy.x) 	ship_velocity_x = ship_cap_vel_xy.x /* / velocity_scale */ ;
+			if ((ship_velocity_x /* * velocity_scale */) < -ship_cap_vel_xy.x)	ship_velocity_x = -(ship_cap_vel_xy.x /* / velocity_scale */ );
+			if ((ship_velocity_y /* * velocity_scale */) > ship_cap_vel_xy.y) 	ship_velocity_y = ship_cap_vel_xy.y /* / velocity_scale */ ;
+			if ((ship_velocity_y /* * velocity_scale */) < -ship_cap_vel_xy.y)	ship_velocity_y = -(ship_cap_vel_xy.y /* / velocity_scale */ );
 
-			ship_pos.x += ship_velocity_x;
-			ship_pos.y += ship_velocity_y;
+			ship_pos.x += fElapsedTime * gameSpeed/4 * ship_velocity_x;
+			ship_pos.y += fElapsedTime * gameSpeed/4 *ship_velocity_y;
 
 			// limit the ship inside the map area , bounch back
 			if (ship_pos.x < 0.0f) { ship_pos.x = 0.0f; ship_velocity_x *= -1.0f; }
@@ -512,10 +504,11 @@ public:
 #endif
 
 			// Altitude check limits
-			if (altitude > max_altitude) {
-				altitude = max_altitude;
-				ship_velocity_z = 0.0f;
-			}
+			//if (altitude > max_altitude) {
+				// altitude = max_altitude;
+				// ship_velocity_z = 0.0f;
+			//}
+
 			if (altitude < 0.0f) {
 				altitude = 0.0f;
 				ship_velocity_x = 0.0f; // x
@@ -534,7 +527,7 @@ public:
 #endif
 
 			DrawAltitude(500, 200);
-			DrawZVelocity(530, 200, ship_velocity_z * velocity_scale);
+			DrawZVelocity(530, 200, ship_velocity_z); // *velocity_scale);
 			DrawThrottle(560, 200); 
 			//	DrawShipAngle( ship_on_screen_pos, ship_angle_x, ship_angle_y);
 			DrawMinimap(minimap_position, ship_pos);
@@ -544,7 +537,7 @@ public:
 			// keep him around just for comparizon
 			DrawShip(); 
 
-			DrawShipNew(oldRustyBucket);	// new version, todo: get it working!
+			// DrawShipNew(oldRustyBucket);	// new version, todo: get it working!
 
 			// TODO: Must make it frame rate independent!
 			// give the update function it's trottle parameters which is normalized
@@ -554,14 +547,14 @@ public:
 			inferiourBattleCruiser.throttle3 = throttle3;
 			inferiourBattleCruiser.throttle4 = throttle4;
 
-			updateShip(inferiourBattleCruiser, fElapsedTime);
-			DrawShipNew(inferiourBattleCruiser);	// new version, todo: get it working!
+			// updateShip(inferiourBattleCruiser, fElapsedTime);
+			// DrawShipNew(inferiourBattleCruiser);	// new version, todo: get it working!
 
-// #ifdef DEBUG_PRINT
+#ifdef DEBUG_PRINT
 			// Draw new ship velocity and angle
 			ss.str(""); ss << "Vel: " << inferiourBattleCruiser.vel_x << "," << inferiourBattleCruiser.vel_y << " Ang " << inferiourBattleCruiser.angle;
 			DrawString({ 100,100 }, ss.str());
-// #endif
+#endif
 
 
 
@@ -609,12 +602,12 @@ public:
 
 			timer_descent_vel_alert_active = false;
 			// show alert if decending dangerously fast
-			if (int(altitude) != 0 && ship_velocity_z * velocity_scale < (game_critical_landing_velocity + 40.0f)) {
+			if (int(altitude) != 0 && ship_velocity_z /* * velocity_scale */ < (game_critical_landing_velocity + 40.0f) ) {
 				timer_descent_vel_alert_active = true;
 			}
 
 			// check z velocity on "landing"
-			if (int(altitude) == 0 && last_velocity_before_crashlanding < game_critical_landing_velocity) {
+			if (int(altitude) == 0 && last_velocity_before_crashlanding*15.0f < game_critical_landing_velocity) {
 				game_state = state::THEEND;
 				ship_crashed = true;
 				sound_crash_play = true;
@@ -732,7 +725,8 @@ public:
 
 		// Debug: <SHIFT-C> toggle ship_crash
 		if (GetKey(olc::Key::SHIFT).bHeld)
-			if (GetKey(olc::Key::C).bReleased) ship_crashed = !ship_crashed;
+			if (GetKey(olc::Key::C).bReleased) 
+				ship_crashed = !ship_crashed;
 
 
 		// Escape to THEEND, or quit if pressed while in THEEND state
@@ -760,7 +754,24 @@ public:
 	} // end Update ---
 
 
+	void InitializeShip(Ship& ship, olc::vf2d pos) {
 
+		ship.angle = 0.0f;
+		ship.maxSpeed = 100.0f;
+		ship.throttle1 = 0.1f;
+		ship.throttle2 = 0.1f;
+		ship.throttle3 = 0.1f;
+		ship.throttle4 = 0.1f;
+		ship.thrust = 0.0f;
+		ship.x = 0.0f;
+		ship.y = 0.0f;
+		ship.z = 0.0f;
+		ship.vel_x = 0.0f;
+		ship.vel_y = 0.0f;
+		ship.vel_z = 0.0f;
+		ship.max_z = 100.0f;
+		ship.screen_pos = pos;
+	}
 
 	void RestartGame() {
 		game_state = state::INTRO;
@@ -814,7 +825,7 @@ public:
 			DrawString({ offsx + 10, asdf + offsy * 1 }, "Oh holy pancake...", olc::GREY);
 			DrawString({ offsx + 10, asdf + offsy * 5 }, "What a spectacular crash!", olc::GREY);
 			DrawString({ offsx + 10, asdf + offsy * 6 }, "Groundbreaking velocity:", olc::GREY);
-			ss.str(""); ss << last_velocity_before_crashlanding;
+			ss.str(""); ss << last_velocity_before_crashlanding*15.0f;
 			DrawString({ offsx + 10 + 28 * 8, asdf + offsy * 6 }, ss.str(), olc::RED);
 			DrawString({ offsx + 10, asdf + offsy * 18 }, "SPACE/ENTER to restart, ESC to quit", olc::RED);
 		}
@@ -1405,7 +1416,7 @@ public:
 		int BarHeight = 100;
 		int BarWidth = 20;
 		float scale = game_critical_landing_velocity / float(BarHeight);
-		float trueVel = ship_velocity_z * velocity_scale;
+		float trueVel = ship_velocity_z * 15.0f; // *velocity_scale;
 		int AltBarHeight = int(fabs(trueVel / scale));
 		olc::Pixel col = olc::GREEN;
 
