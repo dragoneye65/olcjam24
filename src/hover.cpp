@@ -66,6 +66,8 @@ public:
 	float game_clip_objects_radius = 120.0f;
 
 	olc::vi2d mouse_pos, mouse_pos_old;
+	int mouse_wheel_old;
+	int mouse_wheel;
 
 	olc::vi2d instructions_pos = { 50, 50 };
 	int player_points = 0;
@@ -356,6 +358,9 @@ public:
 		mouse_pos_old = mouse_pos;
 		mouse_pos = GetMousePos();
 
+		olc::vi2d yokeStrength;
+		yokeStrength = mouse_pos - ship_pos;
+
 
 		TimerUpdateTrigger(fElapsedTime, 200);
 		/*
@@ -376,6 +381,7 @@ public:
 		// DrawString(mouse_pos, ss.str(), olc::RED);
 
 
+
 		if (game_state == state::GAMEON) {
 
 
@@ -391,9 +397,64 @@ public:
 			else 
 				boostScale = 1.0f;
 
+			// Add mouse support
+			mouse_wheel_old = mouse_wheel;
+			mouse_wheel = GetMouseWheel();
+			int mouse_dead_zone = 20;
+
+			// move right 
+			if (mouse_pos.x >= ship_on_screen_pos.x + mouse_dead_zone) {
+				throttle1 += fElapsedTime * ship_response;
+				throttle2 += fElapsedTime * ship_response;
+				throttle3 -= fElapsedTime * ship_response;
+				throttle4 -= fElapsedTime * ship_response;
+				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
+				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
+				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
+				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+			}
+			// move left 
+			if (mouse_pos.x < ship_on_screen_pos.x - mouse_dead_zone) {
+				throttle1 -= fElapsedTime * ship_response;
+				throttle2 -= fElapsedTime * ship_response;
+				throttle3 += fElapsedTime * ship_response;
+				throttle4 += fElapsedTime * ship_response;
+				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
+				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
+				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
+				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+			}
+
+			// move down
+			if (mouse_pos.y >= ship_on_screen_pos.y + mouse_dead_zone) {
+				throttle1 += fElapsedTime * ship_response;
+				throttle2 -= fElapsedTime * ship_response;
+				throttle3 -= fElapsedTime * ship_response;
+				throttle4 += fElapsedTime * ship_response;
+				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle; if (throttle1 > 1.0) throttle1 = 1.0;
+				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle; if (throttle2 > 1.0) throttle2 = 1.0;
+				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle; if (throttle3 > 1.0) throttle3 = 1.0;
+				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle; if (throttle4 > 1.0) throttle4 = 1.0;
+			}
+
+			// move down
+			if (mouse_pos.y < ship_on_screen_pos.y - mouse_dead_zone) {
+				throttle1 -= fElapsedTime * ship_response;
+				throttle2 += fElapsedTime * ship_response;
+				throttle3 += fElapsedTime * ship_response;
+				throttle4 -= fElapsedTime * ship_response;
+				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
+				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
+				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
+				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+			}
+
+
+
+
 			ship_throttle_key_held = false;
 			// power to all engines
-			if (GetKey(olc::Key::UP).bHeld) {
+			if (GetKey(olc::Key::UP).bHeld || mouse_wheel > 0) {
 				if (altitude < max_altitude) {
 					throttle1 += fElapsedTime * ship_response * boostScale; if (throttle1 > 1.0 * boostScale) throttle1 = 1.0 * boostScale;
 					throttle2 += fElapsedTime * ship_response * boostScale; if (throttle2 > 1.0 * boostScale) throttle2 = 1.0 * boostScale;
@@ -405,7 +466,7 @@ public:
 
 			}
 
-			if (GetKey(olc::Key::DOWN).bHeld) {
+			if (GetKey(olc::Key::DOWN).bHeld || mouse_wheel < 0) {
 				throttle1 -= fElapsedTime * ship_response; if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;
 				throttle2 -= fElapsedTime * ship_response; if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;
 				throttle3 -= fElapsedTime * ship_response; if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;
@@ -933,7 +994,7 @@ public:
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "    You will have to increse throttle to stay airborn.     ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                If you land hard you crash!                ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "  Rudementary mouse support,keep it on ship if using keys  ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                    A,D,W,S Roll/Pitch                     ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                     UP,DOWN Throttle                      ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                 SPACE Toggle autoleveling                 ", olc::DARK_GREEN);
