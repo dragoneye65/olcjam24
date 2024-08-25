@@ -468,181 +468,186 @@ public:
 				ship_tilt_key_held = true;
 			}
 
-			// calculate throttle average from engines
-			ship_avr_throttle = (throttle1 + throttle2 + throttle3 + throttle4) / 4;
 
-			// reset the throttle to neutral position
-			if (GetKey(olc::Key::SPACE).bPressed) {
-				ship_autolevel_toggle = !ship_autolevel_toggle;
-			}
+			if (!game_toggle_intro) {
+				// calculate throttle average from engines
+				ship_avr_throttle = (throttle1 + throttle2 + throttle3 + throttle4) / 4;
 
-			if ( ship_autolevel_toggle)
-				DrawString({ ScreenWidth()/2-12*8/2, 25 }, "Autoleveling ON",olc::GREEN);
-
-			// reset the throttle to neutral position
-			if (GetKey(olc::Key::T).bPressed) {
-				ship_autothrottle_toggle = !ship_autothrottle_toggle;
-			}
-
-			// autothrottle if no throttle key input
-			if (ship_autothrottle_toggle && !ship_throttle_key_held) {
-				/*
-				float autothrottle_response = 60.0f;
-				float trueVel = ship_velocity_z; // *ship_velocity_to_player_scale;
-				float altitudeDifference = auto_alt_hold - altitude;
-
-				if (altitudeDifference > 0) {
-					throttle1 += fElapsedTime * autothrottle_response * altitudeDifference/auto_alt_hold;
-					throttle2 += fElapsedTime * autothrottle_response * altitudeDifference / auto_alt_hold;
-					throttle3 += fElapsedTime * autothrottle_response * altitudeDifference / auto_alt_hold;
-					throttle4 += fElapsedTime * autothrottle_response * altitudeDifference / auto_alt_hold;
-
-					if (throttle1 > 1.0f) throttle1 = 1.0f;
-					if (throttle2 > 1.0f) throttle2 = 1.0f;
-					if (throttle3 > 1.0f) throttle3 = 1.0f;
-					if (throttle4 > 1.0f) throttle4 = 1.0f;
+				// reset the throttle to neutral position
+				if (GetKey(olc::Key::SPACE).bPressed) {
+					ship_autolevel_toggle = !ship_autolevel_toggle;
 				}
-				else if(altitudeDifference < 0) {
-					throttle1 -= fElapsedTime * autothrottle_response / 2;
-					throttle2 -= fElapsedTime * autothrottle_response / 2;
-					throttle3 -= fElapsedTime * autothrottle_response / 2;
-					throttle4 -= fElapsedTime * autothrottle_response / 2;
-					if (throttle1 < 0.0f) throttle1 = 0.0f;
-					if (throttle2 < 0.0f) throttle2 = 0.0f;
-					if (throttle3 < 0.0f) throttle3 = 0.0f;
-					if (throttle4 < 0.0f) throttle4 = 0.0f;
+
+				if (ship_autolevel_toggle)
+					DrawString({ ScreenWidth() / 2 - 12 * 8 / 2, 25 }, "Autoleveling ON", olc::GREEN);
+
+				// reset the throttle to neutral position
+				if (GetKey(olc::Key::T).bPressed) {
+					ship_autothrottle_toggle = !ship_autothrottle_toggle;
 				}
-				*/
-			}
 
-			// autolevel the ship if not any input from player
-			if (ship_autolevel_toggle && !ship_tilt_key_held) {
-				float autolevel_speed_scale = 2.0f;
+				// autothrottle if no throttle key input
+				if (ship_autothrottle_toggle && !ship_throttle_key_held) {
+					/*
+					float autothrottle_response = 60.0f;
+					float trueVel = ship_velocity_z; // *ship_velocity_to_player_scale;
+					float altitudeDifference = auto_alt_hold - altitude;
 
-				if (throttle1 < ship_avr_throttle)
-					throttle1 += fElapsedTime * autolevel_speed_scale;
-				else if (throttle1 > ship_avr_throttle)
-					throttle1 -= fElapsedTime * autolevel_speed_scale;
+					if (altitudeDifference > 0) {
+						throttle1 += fElapsedTime * autothrottle_response * altitudeDifference/auto_alt_hold;
+						throttle2 += fElapsedTime * autothrottle_response * altitudeDifference / auto_alt_hold;
+						throttle3 += fElapsedTime * autothrottle_response * altitudeDifference / auto_alt_hold;
+						throttle4 += fElapsedTime * autothrottle_response * altitudeDifference / auto_alt_hold;
 
-				if (throttle2 < ship_avr_throttle)
-					throttle2 += fElapsedTime * autolevel_speed_scale;
-				else if (throttle2 > ship_avr_throttle)
-					throttle2 -= fElapsedTime * autolevel_speed_scale;
+						if (throttle1 > 1.0f) throttle1 = 1.0f;
+						if (throttle2 > 1.0f) throttle2 = 1.0f;
+						if (throttle3 > 1.0f) throttle3 = 1.0f;
+						if (throttle4 > 1.0f) throttle4 = 1.0f;
+					}
+					else if(altitudeDifference < 0) {
+						throttle1 -= fElapsedTime * autothrottle_response / 2;
+						throttle2 -= fElapsedTime * autothrottle_response / 2;
+						throttle3 -= fElapsedTime * autothrottle_response / 2;
+						throttle4 -= fElapsedTime * autothrottle_response / 2;
+						if (throttle1 < 0.0f) throttle1 = 0.0f;
+						if (throttle2 < 0.0f) throttle2 = 0.0f;
+						if (throttle3 < 0.0f) throttle3 = 0.0f;
+						if (throttle4 < 0.0f) throttle4 = 0.0f;
+					}
+					*/
+				}
 
-				if (throttle3 < ship_avr_throttle)
-					throttle3 += fElapsedTime * autolevel_speed_scale;
-				else if (throttle3 > ship_avr_throttle)
-					throttle3 -= fElapsedTime * autolevel_speed_scale;
+				// autolevel the ship if not any input from player
+				if (ship_autolevel_toggle && !ship_tilt_key_held) {
+					float autolevel_speed_scale = 2.0f;
 
-				if (throttle4 < ship_avr_throttle)
-					throttle4 += fElapsedTime * autolevel_speed_scale;
-				else if (throttle4 > ship_avr_throttle)
-					throttle4 -= fElapsedTime * autolevel_speed_scale;
-			}
+					if (throttle1 < ship_avr_throttle)
+						throttle1 += fElapsedTime * autolevel_speed_scale;
+					else if (throttle1 > ship_avr_throttle)
+						throttle1 -= fElapsedTime * autolevel_speed_scale;
 
-			// velocity = distance * time
-			// position = velocity * time
-			// acceleration += gravity * time
-			// cap acceleration to gravity
+					if (throttle2 < ship_avr_throttle)
+						throttle2 += fElapsedTime * autolevel_speed_scale;
+					else if (throttle2 > ship_avr_throttle)
+						throttle2 -= fElapsedTime * autolevel_speed_scale;
 
-			// ss.str(""); ss << "Vel " << std::setw(6) << ship_velocity_z;
-			// DrawString({ 20,200 }, ss.str(), olc::YELLOW);
+					if (throttle3 < ship_avr_throttle)
+						throttle3 += fElapsedTime * autolevel_speed_scale;
+					else if (throttle3 > ship_avr_throttle)
+						throttle3 -= fElapsedTime * autolevel_speed_scale;
 
-			float gameSpeed = 20.0f;
-			// to hight, auto throtteling down
-			if (altitude >= max_altitude)
-				ship_velocity_z = 0.0;
-			else
-				// thrust
-				ship_velocity_z += fElapsedTime * gameSpeed *cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;
+					if (throttle4 < ship_avr_throttle)
+						throttle4 += fElapsedTime * autolevel_speed_scale;
+					else if (throttle4 > ship_avr_throttle)
+						throttle4 -= fElapsedTime * autolevel_speed_scale;
+				}
+
+				// velocity = distance * time
+				// position = velocity * time
+				// acceleration += gravity * time
+				// cap acceleration to gravity
+
+				// ss.str(""); ss << "Vel " << std::setw(6) << ship_velocity_z;
+				// DrawString({ 20,200 }, ss.str(), olc::YELLOW);
+
+				float gameSpeed = 20.0f;
+				// to hight, auto throtteling down
+				if (altitude >= max_altitude)
+					ship_velocity_z = 0.0;
+				else
+					// thrust
+					ship_velocity_z += fElapsedTime * gameSpeed * cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;
 				// ship_velocity_z += 200.0f *  fElapsedTime;
 				// ship_velocity_z += fElapsedTime * 0.005f * (ship_max_thrust)*cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;
 
 			// Gravity
 			// ship_velocity_z -= fElapsedTime  * 0.001f * ship_weight * gravity;
 
-			ship_velocity_z -= fElapsedTime * gameSpeed * gravity;
-			ship_velocity_z -= fElapsedTime * ship_weight * 0.005; // normalize weight
-			ship_velocity_x += fElapsedTime * gameSpeed * sin(ship_angle_x);
-			ship_velocity_y += fElapsedTime * gameSpeed * sin(ship_angle_y);
-
-			
-			if (game_state == state::GAMEON)
-				last_velocity_before_crashlanding = ship_velocity_z; // *velocity_scale;    // for checking if you crashed hard into ground
+				ship_velocity_z -= fElapsedTime * gameSpeed * gravity;
+				ship_velocity_z -= fElapsedTime * ship_weight * 0.005; // normalize weight
+				ship_velocity_x += fElapsedTime * gameSpeed * sin(ship_angle_x);
+				ship_velocity_y += fElapsedTime * gameSpeed * sin(ship_angle_y);
 
 
-			altitude += fElapsedTime * gameSpeed * ship_velocity_z;
+				if (game_state == state::GAMEON)
+					last_velocity_before_crashlanding = ship_velocity_z; // *velocity_scale;    // for checking if you crashed hard into ground
 
-			// cap ship velocity in xy
-			if ((ship_velocity_x /* * velocity_scale */) > ship_cap_vel_xy.x) 	ship_velocity_x = ship_cap_vel_xy.x /* / velocity_scale */ ;
-			if ((ship_velocity_x /* * velocity_scale */) < -ship_cap_vel_xy.x)	ship_velocity_x = -(ship_cap_vel_xy.x /* / velocity_scale */ );
-			if ((ship_velocity_y /* * velocity_scale */) > ship_cap_vel_xy.y) 	ship_velocity_y = ship_cap_vel_xy.y /* / velocity_scale */ ;
-			if ((ship_velocity_y /* * velocity_scale */) < -ship_cap_vel_xy.y)	ship_velocity_y = -(ship_cap_vel_xy.y /* / velocity_scale */ );
 
-			ship_pos.x += fElapsedTime * gameSpeed/4 * ship_velocity_x;
-			ship_pos.y += fElapsedTime * gameSpeed/4 *ship_velocity_y;
+				altitude += fElapsedTime * gameSpeed * ship_velocity_z;
 
-			// limit the ship inside the map area , bounch back
-			if (ship_pos.x < 0.0f) { ship_pos.x = 0.0f; ship_velocity_x *= -1.0f; }
-			if (ship_pos.x > 500.0f) { ship_pos.x = 500.0f; ship_velocity_x *= -1.0f; }
-			if (ship_pos.y < 0.0f) { ship_pos.y = 0.0f; ship_velocity_y *= -1.0f; }
-			if (ship_pos.y > 500.0f) { ship_pos.y = 500.0f; ship_velocity_y *= -1.0f; }
+				// cap ship velocity in xy
+				if ((ship_velocity_x /* * velocity_scale */) > ship_cap_vel_xy.x) 	ship_velocity_x = ship_cap_vel_xy.x /* / velocity_scale */;
+				if ((ship_velocity_x /* * velocity_scale */) < -ship_cap_vel_xy.x)	ship_velocity_x = -(ship_cap_vel_xy.x /* / velocity_scale */);
+				if ((ship_velocity_y /* * velocity_scale */) > ship_cap_vel_xy.y) 	ship_velocity_y = ship_cap_vel_xy.y /* / velocity_scale */;
+				if ((ship_velocity_y /* * velocity_scale */) < -ship_cap_vel_xy.y)	ship_velocity_y = -(ship_cap_vel_xy.y /* / velocity_scale */);
+
+				ship_pos.x += fElapsedTime * gameSpeed / 4 * ship_velocity_x;
+				ship_pos.y += fElapsedTime * gameSpeed / 4 * ship_velocity_y;
+
+				// limit the ship inside the map area , bounch back
+				if (ship_pos.x < 0.0f) { ship_pos.x = 0.0f; ship_velocity_x *= -1.0f; }
+				if (ship_pos.x > 500.0f) { ship_pos.x = 500.0f; ship_velocity_x *= -1.0f; }
+				if (ship_pos.y < 0.0f) { ship_pos.y = 0.0f; ship_velocity_y *= -1.0f; }
+				if (ship_pos.y > 500.0f) { ship_pos.y = 500.0f; ship_velocity_y *= -1.0f; }
 
 #ifdef DEBUG_PRINT
-			// Show the position to the ship under minimap
-			ss.str(""); ss << ship_pos.x; tmpstr = ss.str();
-			DrawString({ minimap_position.x + 20,minimap_position.y + minimap_size.y + 2 }, tmpstr, olc::YELLOW);
-			ss.str(""); ss << ship_pos.y; tmpstr = ss.str();
-			DrawString({ minimap_position.x + 20,minimap_position.y + minimap_size.y + 12 }, tmpstr, olc::YELLOW);
+				// Show the position to the ship under minimap
+				ss.str(""); ss << ship_pos.x; tmpstr = ss.str();
+				DrawString({ minimap_position.x + 20,minimap_position.y + minimap_size.y + 2 }, tmpstr, olc::YELLOW);
+				ss.str(""); ss << ship_pos.y; tmpstr = ss.str();
+				DrawString({ minimap_position.x + 20,minimap_position.y + minimap_size.y + 12 }, tmpstr, olc::YELLOW);
 #endif
 
-			// Altitude check limits
-			//if (altitude > max_altitude) {
-				// altitude = max_altitude;
-				// ship_velocity_z = 0.0f;
-			//}
+				// Altitude check limits
+				//if (altitude > max_altitude) {
+					// altitude = max_altitude;
+					// ship_velocity_z = 0.0f;
+				//}
 
-			if (altitude < 0.0f) {
-				altitude = 0.0f;
-				ship_velocity_x = 0.0f; // x
-				ship_velocity_y = 0.0f; // y
-				ship_velocity_z = 0.0f; // z
-			}
+				if (altitude < 0.0f) {
+					altitude = 0.0f;
+					ship_velocity_x = 0.0f; // x
+					ship_velocity_y = 0.0f; // y
+					ship_velocity_z = 0.0f; // z
+				}
 
-			// engine speed sound reletive to the avg throttle
-			engine_sound_speed = 1.0 + 2.0 * ship_avr_throttle;
-			it_engine_sound->dSpeedModifier = engine_sound_speed * it_engine_sound->pWave->file.samplerate() / 44100.0;
-			it_engine_sound->dDuration = it_engine_sound->pWave->file.duration() / engine_sound_speed;
+				// engine speed sound reletive to the avg throttle
+				engine_sound_speed = 1.0 + 2.0 * ship_avr_throttle;
+				it_engine_sound->dSpeedModifier = engine_sound_speed * it_engine_sound->pWave->file.samplerate() / 44100.0;
+				it_engine_sound->dDuration = it_engine_sound->pWave->file.duration() / engine_sound_speed;
 
 
-			// Moved to DrawGameMapOnScreen() doe to the z-order of drawing, ship is on top, ie last
-			// DrawShipOnScreen(ship_on_screen_pos, 10, 20, altitude); // x,y,engine minsize, maxsize, altitude
+				// Moved to DrawGameMapOnScreen() doe to the z-order of drawing, ship is on top, ie last
+				// DrawShipOnScreen(ship_on_screen_pos, 10, 20, altitude); // x,y,engine minsize, maxsize, altitude
 
 #ifdef DEBUG_PRINT
 			// show ship real position
-			ss.str("");
-			ss << "(" << ship_on_screen_pos.x << "," << ship_on_screen_pos.y << ")";
-			DrawString({ 0,0 }, ss.str(), olc::YELLOW);
+				ss.str("");
+				ss << "(" << ship_on_screen_pos.x << "," << ship_on_screen_pos.y << ")";
+				DrawString({ 0,0 }, ss.str(), olc::YELLOW);
 #endif
 
-			DrawAltitude(500, 200);
-			DrawZVelocity(530, 200, ship_velocity_z); // *velocity_scale);
-			DrawThrottle(560, 200); 
-			//	DrawShipAngle( ship_on_screen_pos, ship_angle_x, ship_angle_y);
-			DrawMinimap(minimap_position, ship_pos);
-			DrawGameMapOnScreen(ship_pos);
+			} // physics update toggled off if game_toggle_intro
 
-			// old working ship
-			// keep him around just for comparizon
-			DrawShip(); 
-
-
+			// toggle the intro/instruction page
 			if (GetKey(olc::Key::F1).bPressed) {
 				game_toggle_intro = !game_toggle_intro;
 			}
 
-			if (game_toggle_intro)	
-				Instructions(instructions_pos);
+			// Dont draw anything while showing the intro screen
+			if (!game_toggle_intro) {
+				DrawAltitude(500, 200);
+				DrawZVelocity(530, 200, ship_velocity_z); // *velocity_scale);
+				DrawThrottle(560, 200);
+				//	DrawShipAngle( ship_on_screen_pos, ship_angle_x, ship_angle_y);
+				DrawMinimap(minimap_position, ship_pos);
+				DrawGameMapOnScreen(ship_pos);
+
+				// old working ship
+				// keep him around just for comparizon
+				DrawShip();
+			} else
+				Instructions(instructions_pos + olc::vi2d{ 30,50 });
 
 
 			// DrawShipNew(oldRustyBucket);	// new version, todo: get it working!
@@ -906,8 +911,8 @@ public:
 
 	void Instructions(olc::vi2d pos) {
 		int offsy = 10; int yc = 0;
-		FillRect({ pos.x - 1,  pos.y - 1 }, { 500 + 2, 200 + 2 }, olc::VERY_DARK_GREY);
-		DrawRect({ pos.x, pos.y }, { 500, 200 }, olc::GREEN);
+		FillRect({ pos.x - 1,  pos.y - 1 }, { 500 + 2, 220 + 2 }, olc::VERY_DARK_GREY);
+		DrawRect({ pos.x, pos.y }, { 500, 220 }, olc::GREEN);
 
 		ss << std::fixed << std::setprecision(2);
 		DrawString({ ScreenWidth() / 2 - 10 * 16 / 2,24 }, "Hover run", olc::YELLOW, 2);
@@ -929,6 +934,7 @@ public:
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                 SPACE Toggle autoleveling                 ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                  P Purge from inventory                   ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                     F1 This info page                     ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                     Author: DragonEye                     ", olc::DARK_GREEN);
 	}
