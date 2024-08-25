@@ -55,7 +55,7 @@ public:
 
 	enum state { INTRO, GAMEON, THEEND, GAMEWON };
 	enum state game_state = state::INTRO;
-	float game_critical_landing_velocity = -100.0f;
+	float game_critical_landing_velocity = -190.0f;
 	float game_object_proximity_limit = 10.0f;
 	float game_clip_objects_radius = 150.0f;
 
@@ -78,9 +78,11 @@ public:
 	float ship_velocity_z = { 0.0f };
 	olc::vf2d ship_cap_vel_xy = { 100.0f, 100.0f };
 	float ship_cap_vel_z = 300.0f;
+	float ship_velocity_to_player_scale = 15.0f;
 	float last_velocity_before_crashlanding = 0.0f;					// checking for pancake effect
 	float velocity_alert_warning_threshhold = 0.6f;
 	float ship_autolevel_toggle = true;
+	float ship_autothrottle_toggle = true;
 	float ship_response = 2.0f;										// respons factor on the movement
 	float ship_avr_throttle = 0.0f;
 	float ship_idle_throttle = 0.01f;
@@ -90,6 +92,8 @@ public:
 	bool ship_crashed = false;
 	int ship_docket_at_cargoType = 0;
 	bool ship_tilt_key_held = false;
+	bool ship_throttle_key_held = false;
+	float auto_alt_hold = 0;
 
 	// engine quad layout
 	//   1     4
@@ -366,6 +370,7 @@ public:
 			else 
 				boostScale = 1.0f;
 
+			ship_throttle_key_held = false;
 			// power to all engines
 			if (GetKey(olc::Key::UP).bHeld) {
 				if (altitude < max_altitude) {
@@ -373,6 +378,8 @@ public:
 					throttle2 += fElapsedTime * ship_response * boostScale; if (throttle2 > 1.0 * boostScale) throttle2 = 1.0 * boostScale;
 					throttle3 += fElapsedTime * ship_response * boostScale; if (throttle3 > 1.0 * boostScale) throttle3 = 1.0 * boostScale;
 					throttle4 += fElapsedTime * ship_response * boostScale; if (throttle4 > 1.0 * boostScale) throttle4 = 1.0 * boostScale;
+					ship_throttle_key_held = true;
+					auto_alt_hold = altitude;
 				}
 
 			}
@@ -382,6 +389,8 @@ public:
 				throttle2 -= fElapsedTime * ship_response; if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;
 				throttle3 -= fElapsedTime * ship_response; if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;
 				throttle4 -= fElapsedTime * ship_response; if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;
+				ship_throttle_key_held = true;
+				auto_alt_hold = altitude;
 			}
 
 			ship_tilt_key_held = false;
@@ -451,6 +460,42 @@ public:
 				ship_autolevel_toggle = !ship_autolevel_toggle;
 			}
 
+			// reset the throttle to neutral position
+			if (GetKey(olc::Key::T).bPressed) {
+				ship_autothrottle_toggle = !ship_autothrottle_toggle;
+			}
+
+			// autothrottle if no throttle key input
+			if (ship_autothrottle_toggle && !ship_throttle_key_held) {
+				/*
+				float autothrottle_response = 60.0f;
+				float trueVel = ship_velocity_z; // *ship_velocity_to_player_scale;
+				float altitudeDifference = auto_alt_hold - altitude;
+
+				if (altitudeDifference > 0) {
+					throttle1 += fElapsedTime * autothrottle_response * altitudeDifference/auto_alt_hold;
+					throttle2 += fElapsedTime * autothrottle_response * altitudeDifference / auto_alt_hold;
+					throttle3 += fElapsedTime * autothrottle_response * altitudeDifference / auto_alt_hold;
+					throttle4 += fElapsedTime * autothrottle_response * altitudeDifference / auto_alt_hold;
+
+					if (throttle1 > 1.0f) throttle1 = 1.0f;
+					if (throttle2 > 1.0f) throttle2 = 1.0f;
+					if (throttle3 > 1.0f) throttle3 = 1.0f;
+					if (throttle4 > 1.0f) throttle4 = 1.0f;
+				}
+				else if(altitudeDifference < 0) {
+					throttle1 -= fElapsedTime * autothrottle_response / 2;
+					throttle2 -= fElapsedTime * autothrottle_response / 2;
+					throttle3 -= fElapsedTime * autothrottle_response / 2;
+					throttle4 -= fElapsedTime * autothrottle_response / 2;
+					if (throttle1 < 0.0f) throttle1 = 0.0f;
+					if (throttle2 < 0.0f) throttle2 = 0.0f;
+					if (throttle3 < 0.0f) throttle3 = 0.0f;
+					if (throttle4 < 0.0f) throttle4 = 0.0f;
+				}
+				*/
+			}
+
 			// autolevel the ship if not any input from player
 			if (ship_autolevel_toggle && !ship_tilt_key_held) {
 				float autolevel_speed_scale = 2.0f;
@@ -498,7 +543,7 @@ public:
 			// ship_velocity_z -= fElapsedTime  * 0.001f * ship_weight * gravity;
 
 			ship_velocity_z -= fElapsedTime * gameSpeed * gravity;
-			ship_velocity_z -= fElapsedTime * ship_weight * 0.001; // normalize weight
+			ship_velocity_z -= fElapsedTime * ship_weight * 0.005; // normalize weight
 			ship_velocity_x += fElapsedTime * gameSpeed * sin(ship_angle_x);
 			ship_velocity_y += fElapsedTime * gameSpeed * sin(ship_angle_y);
 
@@ -1450,7 +1495,7 @@ public:
 		int BarHeight = 100;
 		int BarWidth = 20;
 		float scale = game_critical_landing_velocity / float(BarHeight);
-		float trueVel = ship_velocity_z * 15.0f; // *velocity_scale;
+		float trueVel = ship_velocity_z * ship_velocity_to_player_scale; // *velocity_scale;
 		int AltBarHeight = int(fabs(trueVel / scale));
 		olc::Pixel col = olc::GREEN;
 
