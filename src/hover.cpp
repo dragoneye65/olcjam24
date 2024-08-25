@@ -101,6 +101,8 @@ public:
 	bool ship_throttle_key_held = false;
 	float auto_alt_hold = 0;
 
+	bool game_toggle_intro = false;
+
 	// engine quad layout
 	//   1     4
 	//      X
@@ -633,6 +635,15 @@ public:
 			// old working ship
 			// keep him around just for comparizon
 			DrawShip(); 
+
+
+			if (GetKey(olc::Key::F1).bPressed) {
+				game_toggle_intro = !game_toggle_intro;
+			}
+
+			if (game_toggle_intro)	
+				Instructions(instructions_pos);
+
 
 			// DrawShipNew(oldRustyBucket);	// new version, todo: get it working!
 
