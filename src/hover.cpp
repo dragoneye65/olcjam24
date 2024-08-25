@@ -841,7 +841,7 @@ public:
 		}
 
 		// If not playing, kill the volume
-		if (game_state != state::GAMEON) {
+		if (game_state == state::INTRO) {
 			wave_engine.SetOutputVolume(0.0f);
 		}
 
@@ -928,8 +928,8 @@ public:
 		int offsy = 10;
 		int offsx = ScreenWidth() / 4;
 		int asdf = ScreenHeight() / 4;
-		FillRect({ offsx - 1, asdf - 1 }, { 300 + 2, 200 + 2 }, olc::VERY_DARK_GREY);
-		DrawRect({ offsx, asdf }, { 300, 200 }, olc::RED);
+		FillRect({ offsx - 1, asdf - 1 }, { 300 + 2, 220 + 2 }, olc::VERY_DARK_GREY);
+		DrawRect({ offsx, asdf }, { 300, 220 }, olc::RED);
 
 		//		if (last_velocity_before_crashlanding <= game_critical_landing_velocity) {
 		if (ship_crashed) {
@@ -938,7 +938,7 @@ public:
 			DrawString({ offsx + 10, asdf + offsy * 6 }, "Groundbreaking velocity:", olc::GREY);
 			ss.str(""); ss << last_velocity_before_crashlanding*15.0f;
 			DrawString({ offsx + 10 + 28 * 8, asdf + offsy * 6 }, ss.str(), olc::RED);
-			DrawString({ offsx + 10, asdf + offsy * 18 }, "SPACE/ENTER to restart, ESC/BACK to quit", olc::RED);
+			DrawString({ offsx + 10, asdf + offsy * 18 }, "SPACE/ENTER to restart,ESC/BACK quit", olc::RED);
 		}
 		else {
 			DrawString({ offsx + 10, asdf + offsy * 1 }, "        User aborted!", olc::GREY);
