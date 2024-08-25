@@ -76,10 +76,11 @@ public:
 	float ship_velocity_x = { 0.0f };
 	float ship_velocity_y = { 0.0f };
 	float ship_velocity_z = { 0.0f };
-	olc::vf2d ship_cap_vel_xy = { 1000.0f, 1000.0f };
+	olc::vf2d ship_cap_vel_xy = { 100.0f, 100.0f };
 	float ship_cap_vel_z = 300.0f;
 	float last_velocity_before_crashlanding = 0.0f;					// checking for pancake effect
 	float velocity_alert_warning_threshhold = 0.6f;
+	float ship_autolevel_toggle = true;
 	float ship_response = 2.0f;										// respons factor on the movement
 	float ship_avr_throttle = 0.0f;
 	float ship_idle_throttle = 0.01f;
@@ -88,6 +89,7 @@ public:
 	float pi_2 = 1.57079632679f;									// 
 	bool ship_crashed = false;
 	int ship_docket_at_cargoType = 0;
+	bool ship_tilt_key_held = false;
 
 	// engine quad layout
 	//   1     4
@@ -382,6 +384,7 @@ public:
 				throttle4 -= fElapsedTime * ship_response; if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;
 			}
 
+			ship_tilt_key_held = false;
 			// roll left
 			// Increse 3 and 4
 			// decrese 1 and 2
@@ -395,6 +398,7 @@ public:
 				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
 				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
 				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+				ship_tilt_key_held = true;
 			}
 			// roll right
 			// Increse 1 and 2
@@ -408,6 +412,7 @@ public:
 				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
 				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
 				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+				ship_tilt_key_held = true;
 			}
 			// pitch forward
 			// Increse 2 and 3
@@ -421,6 +426,7 @@ public:
 				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
 				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
 				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+				ship_tilt_key_held = true;
 			}
 			// pitch back
 			// Increse 1 and 4
@@ -434,6 +440,7 @@ public:
 				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle; if (throttle2 > 1.0) throttle2 = 1.0;
 				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle; if (throttle3 > 1.0) throttle3 = 1.0;
 				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle; if (throttle4 > 1.0) throttle4 = 1.0;
+				ship_tilt_key_held = true;
 			}
 
 			// calculate throttle average from engines
@@ -441,10 +448,32 @@ public:
 
 			// reset the throttle to neutral position
 			if (GetKey(olc::Key::SPACE).bPressed) {
-				throttle1 = ship_avr_throttle;
-				throttle2 = ship_avr_throttle;
-				throttle3 = ship_avr_throttle;
-				throttle4 = ship_avr_throttle;
+				ship_autolevel_toggle = !ship_autolevel_toggle;
+			}
+
+			// autolevel the ship if not any input from player
+			if (ship_autolevel_toggle && !ship_tilt_key_held) {
+				float autolevel_speed_scale = 2.0f;
+
+				if (throttle1 < ship_avr_throttle)
+					throttle1 += fElapsedTime * autolevel_speed_scale;
+				else if (throttle1 > ship_avr_throttle)
+					throttle1 -= fElapsedTime * autolevel_speed_scale;
+
+				if (throttle2 < ship_avr_throttle)
+					throttle2 += fElapsedTime * autolevel_speed_scale;
+				else if (throttle2 > ship_avr_throttle)
+					throttle2 -= fElapsedTime * autolevel_speed_scale;
+
+				if (throttle3 < ship_avr_throttle)
+					throttle3 += fElapsedTime * autolevel_speed_scale;
+				else if (throttle3 > ship_avr_throttle)
+					throttle3 -= fElapsedTime * autolevel_speed_scale;
+
+				if (throttle4 < ship_avr_throttle)
+					throttle4 += fElapsedTime * autolevel_speed_scale;
+				else if (throttle4 > ship_avr_throttle)
+					throttle4 -= fElapsedTime * autolevel_speed_scale;
 			}
 
 			// velocity = distance * time
@@ -789,26 +818,31 @@ public:
 	}
 
 	void Instructions(olc::vi2d pos) {
-		int offsy = 10;
+		int offsy = 10; int yc = 0;
 		FillRect({ pos.x - 1,  pos.y - 1 }, { 500 + 2, 200 + 2 }, olc::VERY_DARK_GREY);
 		DrawRect({ pos.x, pos.y }, { 500, 200 }, olc::GREEN);
 
 		ss << std::fixed << std::setprecision(2);
 		DrawString({ ScreenWidth() / 2 - 10 * 16 / 2,24 }, "Hover run", olc::YELLOW, 2);
 
-		DrawString({ pos.x + 10, pos.y + offsy *  1 }, "     As a drone pilot I just had to make this game.        ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy *  2 }, "                If you land hard you crash!                ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy *  3 }, " The game is played by watching the altitude carefully     ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy *  4 }, " while running your missions gathering cargo by landing    ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy *  5 }, " softly on top of them,you can pick up as many as you like ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy *  6 }, "    when you feel like it just land on the red dropzone    ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy *  7 }, "          and it will offload automagically.               ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy *  8 }, " Be aware that when you roll and pitch you loose altitude. ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy *  9 }, "    You will have to increse throttle to stay airborn.     ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * 10 }, "The four engines power-level shows with red filled circles ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * 12 }, "If you are too heavy, purge the last inventory item with P!", olc::MAGENTA);
-		DrawString({ pos.x + 10, pos.y + offsy * 14 }, "       Use the ADWS, SPACE, UP, DOWN, P  keys to play      ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * 16 }, "               Have fun!  Regards DragonEye.               ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "     As a drone pilot I just had to make this game.        ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, " The game is played by watching the altitude carefully     ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, " while running the missions gathering cargo by landing     ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, " softly on top of them,you can pick up as many as you like ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "      after pickup you fly and land on the dropzone        ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, " Be aware that when you roll and pitch you loose altitude. ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "    You will have to increse throttle to stay airborn.     ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                If you land hard you crash!                ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                    A,D,W,S Roll/Pitch                     ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                     UP,DOWN Throttle                      ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                 SPACE Toggle autoleveling                 ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                  P Purge from inventory                   ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                     Author: DragonEye                     ", olc::DARK_GREEN);
 	}
 
 
