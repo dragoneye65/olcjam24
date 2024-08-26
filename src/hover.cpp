@@ -1078,8 +1078,8 @@ public:
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, " softly on top of them,you can pick up as many as you like.", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "    After pickup you fly and land on the dropzone(chest)   ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, " Be aware that when you roll and pitch you loose altitude  ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "     and You need to increse throttle to stay airborn.     ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "        If you land with a speed over -130 you crash       ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "     and you need to increase throttle to stay airborn.    ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "    If you land with a speed over -130, ship wreck! :)     ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "       Simple mouse control, mouse wheel is throttle       ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "  If you are using the keys then center the cursor on ship ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                    A,D,W,S Roll/Pitch                     ", olc::DARK_GREEN);
