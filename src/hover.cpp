@@ -1325,6 +1325,7 @@ public:
 					// DrawCircle({ int(cx),int(cy) }, 10, col);
 					ss.str(""); ss << std::setw(1) << static_cast<char>(cargos[i].cargoType);
 					DrawString({ int(cx) - 3,int(cy) - 3 }, ss.str());
+					DrawStringDecal({ float(int(cx) - 3),float(int(cy) - 3 )}, ss.str());
 				}
 			}
 
