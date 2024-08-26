@@ -308,17 +308,17 @@ public:
 	// Calculate the ship movements
 	void updateShip(Ship& ship, float fElapsedTime) {
 		// Calculate thrust for each engine
-		ship.angle = atan2(ship.z, sqrt(pow(ship.x, 2) + pow(ship.y, 2)));
+		ship.angle = float(atan2(ship.z, sqrt(pow(ship.x, 2) + pow(ship.y, 2))));
 
 		// individual engine thrust
-		float thrustX1 = ship.thrust * ship.throttle1 * cos(ship.angle + M_PI / 4);
-		float thrustY1 = ship.thrust * ship.throttle1 * sin(ship.angle + M_PI / 4);
-		float thrustX2 = ship.thrust * ship.throttle2 * cos(ship.angle - M_PI / 4);
-		float thrustY2 = ship.thrust * ship.throttle2 * sin(ship.angle - M_PI / 4);
-		float thrustX3 = ship.thrust * ship.throttle3 * cos(ship.angle - 3 * M_PI / 4);
-		float thrustY3 = ship.thrust * ship.throttle3 * sin(ship.angle - 3 * M_PI / 4);
-		float thrustX4 = ship.thrust * ship.throttle4 * cos(ship.angle + 3 * M_PI / 4);
-		float thrustY4 = ship.thrust * ship.throttle4 * sin(ship.angle + 3 * M_PI / 4);
+		float thrustX1 = ship.thrust * ship.throttle1 * float(cos(ship.angle + M_PI / 4));
+		float thrustY1 = ship.thrust * ship.throttle1 * float(sin(ship.angle + M_PI / 4));
+		float thrustX2 = ship.thrust * ship.throttle2 * float(cos(ship.angle - M_PI / 4));
+		float thrustY2 = ship.thrust * ship.throttle2 * float(sin(ship.angle - M_PI / 4));
+		float thrustX3 = ship.thrust * ship.throttle3 * float(cos(ship.angle - 3 * M_PI / 4));
+		float thrustY3 = ship.thrust * ship.throttle3 * float(sin(ship.angle - 3 * M_PI / 4));
+		float thrustX4 = ship.thrust * ship.throttle4 * float(cos(ship.angle + 3 * M_PI / 4));
+		float thrustY4 = ship.thrust * ship.throttle4 * float(sin(ship.angle + 3 * M_PI / 4));
 
 		// todo: do I need this later?
 		//ship.thrust1 = { thrustX1, thrustY1 };
@@ -338,7 +338,7 @@ public:
 		ship.vel_z += thrustZ * fElapsedTime;
 
 		// Limit velocity
-		float velocityMagnitude = sqrt(pow(ship.vel_x, 2) + pow(ship.vel_y, 2) + pow(ship.vel_z, 2));
+		float velocityMagnitude = float(sqrt(pow(ship.vel_x, 2) + pow(ship.vel_y, 2) + pow(ship.vel_z, 2)));
 		if (velocityMagnitude > ship.maxSpeed) {
 			float scaleFactor = ship.maxSpeed / velocityMagnitude;
 			ship.vel_x *= scaleFactor;
@@ -404,8 +404,8 @@ public:
 			mouse_dead_zone = 10;
 
 			olc::vf2d mouse_ship_response;
-			mouse_ship_response.x = fabs(mouse_pos.x - ship_on_screen_pos.x); 
-			mouse_ship_response.y = fabs(mouse_pos.y - ship_on_screen_pos.y); 
+			mouse_ship_response.x = float(abs(mouse_pos.x - ship_on_screen_pos.x)); 
+			mouse_ship_response.y = float(abs(mouse_pos.y - ship_on_screen_pos.y)); 
 
 			if (ship_autolevel_toggle) {
 				mouse_ship_response.x *= 0.05f;
@@ -474,10 +474,10 @@ public:
 					mouse_response = 2.0f;
 
 				if (altitude < max_altitude) {
-					throttle1 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle1 > 1.0 * boostScale) throttle1 = 1.0 * boostScale;
-					throttle2 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle2 > 1.0 * boostScale) throttle2 = 1.0 * boostScale;
-					throttle3 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle3 > 1.0 * boostScale) throttle3 = 1.0 * boostScale;
-					throttle4 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle4 > 1.0 * boostScale) throttle4 = 1.0 * boostScale;
+					throttle1 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle1 > 1.0f * boostScale) throttle1 = 1.0f * boostScale;
+					throttle2 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle2 > 1.0f * boostScale) throttle2 = 1.0f * boostScale;
+					throttle3 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle3 > 1.0f * boostScale) throttle3 = 1.0f * boostScale;
+					throttle4 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle4 > 1.0f * boostScale) throttle4 = 1.0f * boostScale;
 					ship_throttle_key_held = true;
 					auto_alt_hold = altitude;
 				}
@@ -653,7 +653,7 @@ public:
 			// ship_velocity_z -= fElapsedTime  * 0.001f * ship_weight * gravity;
 
 				ship_velocity_z -= fElapsedTime * gameSpeed * gravity;
-				ship_velocity_z -= fElapsedTime * ship_weight * 0.005; // normalize weight
+				ship_velocity_z -= fElapsedTime * ship_weight * 0.005f; // normalize weight
 				ship_velocity_x += fElapsedTime * gameSpeed * sin(ship_angle_x);
 				ship_velocity_y += fElapsedTime * gameSpeed * sin(ship_angle_y);
 
@@ -1229,7 +1229,7 @@ public:
 			}
 
 			float dec_scale;
-			float dec_scaley;
+			// float dec_scaley;
 
 			float center_y;
 			float center_x;
@@ -1360,7 +1360,7 @@ public:
 	void DrawShipNew(Ship& ship) {
 
 		float angle_x = atan2(ship.y, ship.x);
-		float angle_y = atan2(ship.z, sqrt(pow(ship.x, 2) + pow(ship.y, 2)));
+		float angle_y = float(atan2(ship.z, sqrt(pow(ship.x, 2) + pow(ship.y, 2))));
 
 		float dec_scale = 0.2f + 0.4f * (ship.z / ship.max_z);
 
@@ -1648,7 +1648,7 @@ public:
 		int BarWidth = 20;
 
 		// float scale =  BarHeight*ship_avr_throttle;
-		int AltBarHeight; // = int(ship_avr_throttle / scale);
+		// int AltBarHeight; // = int(ship_avr_throttle / scale);
 
 #ifdef DEBUG_PRINT
 		// draw throttle
