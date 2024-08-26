@@ -251,6 +251,7 @@ public:
 		//	  0:stationary (usually just bomb it)
 		//  1-5: moveable  (pic up and drop these different cargo types)
 		//  6-9: running   (now we are talking, pick up or bomb those running suckers)
+
 		game_map = "9              9";
 		game_map += "     0   0      ";
 		game_map += "  5         3   " ;
@@ -261,8 +262,18 @@ public:
 		game_map += "                ";
 		game_map += "     2      8   ";
 		game_map += "9      3       9";
-
-
+/*
+		game_map = "                ";
+		game_map += "                ";
+		game_map += "                ";
+		game_map += "                ";
+		game_map += "   d  2*        ";
+		game_map += "                ";
+		game_map += "                ";
+		game_map += "                ";
+		game_map += "                ";
+		game_map += "                ";
+*/
 		ship_on_screen_pos = { ScreenWidth() / 2,ScreenHeight() / 2 };
 		minimap_position = { ScreenWidth() - minimap_size.x - 2, 10 };
 
@@ -817,7 +828,11 @@ public:
 			}
 
 			// no more cargo to pick up, if you deliver this you win -------
-			if (cargos.size() == 2) {  // only startpad and dropzone left
+			int items_in_cargos = std::count_if(cargos.begin(), cargos.end(),
+				[](cargo c) { return isdigit(c.cargoType); });
+
+//			if (cargos.size() == 2) {  // only startpad and dropzone left
+			if (items_in_cargos == 0) {  // only startpad and dropzone left
 				if (inventory.size() == 0)   // and inventory delivered
 					game_state = state::GAMEWON;  // goal!!!
 			}
