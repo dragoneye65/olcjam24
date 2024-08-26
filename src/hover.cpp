@@ -1065,32 +1065,35 @@ public:
 
 	void Instructions(olc::vi2d pos) {
 		int offsy = 10; int yc = 0;
-		FillRect({ pos.x - 1,  pos.y - 1 }, { 500 + 2, 220 + 2 }, olc::VERY_DARK_GREY);
-		DrawRect({ pos.x, pos.y }, { 500, 220 }, olc::GREEN);
+		FillRect({ pos.x - 1,  pos.y - 1 }, { 500 + 2, 240 + 2 }, olc::VERY_DARK_GREY);
+		DrawRect({ pos.x, pos.y }, { 500, 240 }, olc::GREEN);
 
 		ss << std::fixed << std::setprecision(2);
 		DrawString({ ScreenWidth() / 2 - 10 * 16 / 2,24 }, "Hover run", olc::YELLOW, 2);
 
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "     As a drone pilot I just had to make this game.        ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                Made for the olcCodeJam 2024               ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, " The game is played by watching the altitude carefully     ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, " while running the missions gathering cargo by landing     ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, " softly on top of them,you can pick up as many as you like ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "      after pickup you fly and land on the dropzone        ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, " Be aware that when you roll and pitch you loose altitude. ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "    You will have to increse throttle to stay airborn.     ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                If you land hard you crash!                ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "  Rudementary mouse support,keep it on ship if using keys  ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "  The game is played by watching the altitude carefully.   ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "   You are running missions gathering cargo by landing     ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, " softly on top of them,you can pick up as many as you like.", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "    After pickup you fly and land on the dropzone(chest)   ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, " Be aware that when you roll and pitch you loose altitude  ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "     and You need to increse throttle to stay airborn.     ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "        If you land with a speed over -130 you crash       ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "       Simple mouse control, mouse wheel is throttle       ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "  If you are using the keys then center the cursor on ship ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                    A,D,W,S Roll/Pitch                     ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                     UP,DOWN Throttle                      ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                 SPACE Toggle autoleveling                 ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                  P Purge from inventory                   ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "         P Purge from inventory  (ship is too heavy?)      ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                       F1 This page                        ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                     F1 This info page                     ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                         Credits                           ", olc::DARK_YELLOW);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "             Javidx9 for his olcPixelGameEngine,           ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "          Moros1138 for his olcPGEX_MiniAudio wrapper,     ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                 David Reid for his miniaudio              ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                     Author: DragonEye                     ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                 Author: DragoneEye (discord)              ", olc::DARK_GREEN);
 	}
 
 
