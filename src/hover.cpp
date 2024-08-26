@@ -61,7 +61,6 @@ public:
 
 	enum state { INTRO, GAMEON, THEEND, GAMEWON };
 	enum state game_state = state::INTRO;
-	float game_critical_landing_velocity = -190.0f;
 	float game_object_proximity_limit = 10.0f;
 	float game_clip_objects_radius = 120.0f;
 
@@ -87,9 +86,10 @@ public:
 	olc::vf2d ship_cap_vel_xy = { 100.0f, 100.0f };
 	float ship_cap_vel_z = 300.0f;
 	float ship_velocity_to_player_scale = 15.0f;
+	float game_critical_landing_velocity = -150.0f;
 	float last_velocity_before_crashlanding = 0.0f;					// checking for pancake effect
 	float velocity_alert_warning_threshhold = 0.6f;
-	float ship_autolevel_toggle = true;
+	float ship_autolevel_toggle = false;
 	float ship_autothrottle_toggle = true;
 	float ship_response = 2.0f;										// respons factor on the movement
 	float ship_avr_throttle = 0.0f;
@@ -115,7 +115,7 @@ public:
 	olc::vf2d ship_pos;
 
 	// world
-	float gravity = 0.4f;
+	float gravity = 0.2f;
 	float altitude = 0.0f;									// 0m  sea level
 	float max_altitude = 140.0f;
 	olc::vf2d world_max = { 500.0f,500.0f };
@@ -269,7 +269,7 @@ public:
 		wave_crash.LoadAudioWaveform( "./res/wav/crash.wav");
 		wave_purge.LoadAudioWaveform("./res/wav/purge.wav");
 
-		wave_engine_sound.LoadAudioWaveform("./res/wav/engine2.wav");
+		wave_engine_sound.LoadAudioWaveform("./res/wav/engine.wav");
 		it_engine_sound = wave_engine.PlayWaveform(&wave_engine_sound, true, 1.0);
 		wave_engine.SetOutputVolume(0.0f);
 		// it_engine_sound->bFlagForStop = true;
@@ -638,9 +638,14 @@ public:
 				// to hight, auto throtteling down
 				if (altitude >= max_altitude)
 					ship_velocity_z = 0.0;
-				else
-					// thrust
-					ship_velocity_z += fElapsedTime * gameSpeed * cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;
+				else {
+					// thrust in z axis
+
+					float angle_dec_thrust = cos(ship_angle_x/1.5f) * cos(ship_angle_y/1.5f); // invert it?
+					ship_velocity_z += fElapsedTime * gameSpeed * angle_dec_thrust * ship_avr_throttle;
+					// ss.str(""); ss << "Angle: " << angle_dec_thrust;
+					// DrawStringDecal({ 10.0f,250.0f }, ss.str());
+				}
 				// ship_velocity_z += 200.0f *  fElapsedTime;
 				// ship_velocity_z += fElapsedTime * 0.005f * (ship_max_thrust)*cos(ship_angle_x) * cos(ship_angle_y) * ship_avr_throttle;
 
