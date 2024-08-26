@@ -1,8 +1,11 @@
 #define OLC_PGE_APPLICATION
 #include "olcPixelGameEngine.h"
 
-#define OLC_SOUNDWAVE
-#include "olcSoundWaveEngine.h"
+// #define OLC_SOUNDWAVE
+// #include "olcSoundWaveEngine.h"
+
+#define OLC_PGEX_MINIAUDIO
+#include "olcPGEX_MiniAudio.h"
 
 
 #include <cmath>
@@ -20,7 +23,7 @@ public:
 	{
 		sAppName = "Hover";
 	}
-
+	/*
 	olc::sound::WaveEngine wave_engine;
 	olc::sound::Wave wave_altitude_alert;
 	olc::sound::Wave wave_crash;
@@ -36,6 +39,15 @@ public:
 	olc::sound::PlayingWave it_purge;
 	olc::sound::PlayingWave it_bgm;
 	olc::sound::PlayingWave it_engine_sound;
+	*/
+
+	olc::MiniAudio ma_engine;
+	int sound_bgm_id;
+	int sound_pickup_id;
+	int sound_drop_id;
+	int sound_purge_id;
+	int sound_crash_id;
+	int sound_ship_id;
 
 	olc::Sprite* spr_orb = nullptr;	olc::Decal* dec_orb = nullptr;
 	olc::Sprite* spr_chest = nullptr;	olc::Decal* dec_chest = nullptr;
@@ -257,6 +269,7 @@ public:
 		InitGameMap();
 		ship_pos = startpos;
 
+		/*
 		wave_engine.InitialiseAudio();
 
 		// std::string sound_file_path;
@@ -273,6 +286,20 @@ public:
 		it_engine_sound = wave_engine.PlayWaveform(&wave_engine_sound, true, 1.0);
 		wave_engine.SetOutputVolume(0.0f);
 		// it_engine_sound->bFlagForStop = true;
+		*/
+
+		sound_bgm_id = ma_engine.LoadSound("./res/wav/bgm.wav");
+		ma_engine.SetVolume(sound_bgm_id, 0.5f);
+		ma_engine.SetBackgroundPlay(true);
+
+		sound_pickup_id = ma_engine.LoadSound("./res/wav/pickup.wav");
+		sound_drop_id = ma_engine.LoadSound("./res/wav/drop.wav");
+		sound_crash_id = ma_engine.LoadSound("./res/wav/crash.wav");
+		sound_purge_id = ma_engine.LoadSound("./res/wav/purge.wav");
+		sound_ship_id = ma_engine.LoadSound("./res/wav/engine.wav");
+		ma_engine.SetVolume(sound_ship_id, 0.2f);
+		ma_engine.Toggle(sound_ship_id, true);
+
 
 		spr_orb = new olc::Sprite("./res/img/orb.png");	dec_orb = new olc::Decal(spr_orb);
 		spr_chest = new olc::Sprite("./res/img/chest.png");	dec_chest = new olc::Decal(spr_chest);
@@ -701,9 +728,16 @@ public:
 				}
 
 				// engine speed sound reletive to the avg throttle
+				
 				engine_sound_speed = 1.0 + 2.0 * ship_avr_throttle;
+				ma_engine.SetPitch(sound_ship_id, engine_sound_speed);
+
+				/*
 				it_engine_sound->dSpeedModifier = engine_sound_speed * it_engine_sound->pWave->file.samplerate() / 44100.0;
 				it_engine_sound->dDuration = it_engine_sound->pWave->file.duration() / engine_sound_speed;
+				*/
+
+
 
 
 				// Moved to DrawGameMapOnScreen() doe to the z-order of drawing, ship is on top, ie last
@@ -835,7 +869,8 @@ public:
 			// play the crash sound
 			if (sound_crash_play) {
 				sound_crash_play = false;
-				wave_engine.PlayWaveform(&wave_crash);
+				ma_engine.Toggle(sound_crash_id, true);
+				// wave_engine.PlayWaveform(&wave_crash);
 			}
 
 			// play the altitude alert sound
@@ -849,19 +884,24 @@ public:
 			// play the cargo pickup sound
 			if (sound_pickup_play) {
 				sound_pickup_play = false;
-				wave_engine.PlayWaveform(&wave_pickup);
+// 				wave_engine.PlayWaveform(&wave_pickup);
+				ma_engine.Toggle(sound_pickup_id, true);
 			}
 
 			// play the drop sound
 			if (sound_drop_play) {
 				sound_drop_play = false;
-				wave_engine.PlayWaveform(&wave_drop);
+				// wave_engine.PlayWaveform(&wave_drop);
+				ma_engine.Toggle(sound_drop_id, true);
+
 			}
 
 			// play the purge sound
 			if (sound_purge_play) {
 				sound_purge_play = false;
-				wave_engine.PlayWaveform(&wave_purge);
+				// wave_engine.PlayWaveform(&wave_purge);
+				ma_engine.Toggle(sound_purge_id, true);
+
 			}
 
 			// Purge the last item from inventory
@@ -875,6 +915,16 @@ public:
 			// show mouse cursor + position
 			DrawLineDecal(mouse_pos - olc::vi2d{ 5,5 }, mouse_pos + olc::vi2d{ 5,5 }, olc::WHITE);
 			DrawLineDecal(mouse_pos - olc::vi2d{ -5,5 }, mouse_pos + olc::vi2d{ -5,5 }, olc::WHITE);
+
+
+			// must start the sounds again if they are finished playing
+			if (!ma_engine.IsPlaying(sound_ship_id)) {
+				ma_engine.Toggle(sound_ship_id, true);
+				// ma_engine.SetVolume(sound_ship_id, 0.4f);
+			}
+			if (!ma_engine.IsPlaying(sound_bgm_id))
+				ma_engine.Toggle(sound_bgm_id, true);
+
 
 
 		} // endif: state_GAMEON ---
@@ -908,7 +958,14 @@ public:
 				game_state = state::GAMEON;
 
 				// set sound on
-				wave_engine.SetOutputVolume(0.8f);
+				// wave_engine.SetOutputVolume(0.8f);
+				// ma_engine.Toggle(sound_engine_id, false);
+				// ma_engine.Pause(sound_ship_id);
+				// ma_engine_listener_set_position(ma_engine.GetEngine(), 0, 0.0f, 0.0f, 0.0f);
+				// ma_sound_set_looping(ma_engine.get .GetSound(), 1);
+				ma_engine.Toggle(sound_ship_id, true);
+				ma_engine.Toggle(sound_bgm_id, true);
+
 			}
 		}
 
@@ -920,7 +977,9 @@ public:
 			if (GetKey(olc::Key::SPACE).bReleased) {
 				if (!ship_crashed) {
 					game_state = state::GAMEON;
-					wave_engine.SetOutputVolume(0.8f);
+					// ma_engine.Toggle(sound_engine_id, false);
+					ma_engine.Pause(sound_ship_id);
+					// wave_engine.SetOutputVolume(0.8f);
 				}
 				else
 					RestartGame();
@@ -952,7 +1011,8 @@ public:
 
 		// If not playing, kill the volume
 		if (game_state == state::INTRO) {
-			wave_engine.SetOutputVolume(0.0f);
+			// wave_engine.SetOutputVolume(0.0f);
+			ma_engine.Pause(sound_ship_id);
 		}
 
 #ifdef DEBUG_PRINT
