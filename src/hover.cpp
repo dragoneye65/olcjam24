@@ -117,19 +117,21 @@ public:
 	float altitude = 0.0f;									// 0m  sea level
 	float max_altitude = 140.0f;
 	olc::vf2d world_max = { 1000.0f,1000.0f }; // *16.0f / 9.0f };
-	olc::vi2d minimap_size = { 100, 100 };
-	olc::vi2d minimap_position;
-	olc::vf2d startpos;			// doh
-	olc::vf2d dropzone;  		// dropzone
+	olc::vf2d startpos;			// start position on the map
+	olc::vf2d dropzone;  		// dropzone position on the map
 	std::vector<cargo> cargos;	// yea you guessed it
 	bool cargo_no_pickup = false;
-	olc::vi2d inventory_pos = { 10, 50 };
 	bool mouse_control_toggle = false;
 	bool hud_toggle = true;
+	olc::vi2d minimap_size = { 100, 100 };
+	olc::vi2d minimap_position;
+	olc::vi2d inventory_pos = { 10, 50 };
 	olc::vf2d instrument_pos = { 550.0f, 150.0f };
 	olc::vf2d docked_pos = { 0.0f ,0.0f };				// initialized in oncreate 
 	olc::vf2d inventory_weight_pos = { 100.0f, 10.0f };
 	olc::vf2d score_pos{ 10.0f,10.0f };
+	
+	// docked at string pos = -
 
 	// need some temperary stuff
 	std::string tmpstr;			
@@ -241,8 +243,13 @@ public:
 		game_map += "oooooooooooooooo";
 
 		ship_on_screen_pos = { ScreenWidth() / 2,ScreenHeight() / 2 };
-		minimap_position = { ScreenWidth() - minimap_size.x - 2, 10 };
-		docked_pos = { float(ScreenWidth() / 2 - 40), 10.0f };
+		docked_pos = { float(ScreenWidth() / 2 - 70), 36.0f };
+
+		minimap_position = { ScreenWidth() - minimap_size.x - 25, 35 };
+		inventory_pos = { 30, 80 };
+		instrument_pos = { float(ScreenWidth() - minimap_size.x - 20), 165.0f };
+		inventory_weight_pos = { 110.0f, 36.0f };
+		score_pos = { 30.0f, 36.0f };
 
 		InitGameMap();
 		ship_pos = startpos;
@@ -550,20 +557,15 @@ public:
 				ship_pos.x += fElapsedTime * gameSpeed / 4 * ship_velocity_x;
 				ship_pos.y += fElapsedTime * gameSpeed / 4 * ship_velocity_y;
 
-				// limit the ship inside the map area , bounch back
-				float shipworldendx = (world_max.x / 16) * 14;
-				float shipworldendy = (world_max.y / 10) *  9;
-				float shipworldstartx = (world_max.x / 16);
-				float shipworldstarty = (world_max.y / 10)/2;
+				// limit the ship inside the map area , bounch back halves the velocity
+				float shipworldendx = (world_max.x / charmap_dim.x) * charmap_dim.x-2;
+				float shipworldendy = (world_max.y / charmap_dim.y) * charmap_dim.y - 2;
+				float shipworldstartx = (world_max.x / charmap_dim.x);
+				float shipworldstarty = (world_max.y / charmap_dim.y);
 				if (ship_pos.x <= shipworldstartx) { ship_pos.x = shipworldstartx; ship_velocity_x *= -0.5f; }
 				if (ship_pos.x >= shipworldendx) { ship_pos.x = shipworldendx; ship_velocity_x *= -0.5f; }
 				if (ship_pos.y <= shipworldstarty) { ship_pos.y = shipworldstarty; ship_velocity_y *= -0.5f; }
 				if (ship_pos.y >= shipworldendy) { ship_pos.y = shipworldendy; ship_velocity_y *= -0.5f; }
-
-				//if (ship_pos.x <        0.0f) { ship_pos.x =        0.0f; ship_velocity_x *= -1.0f; }
-				//if (ship_pos.x >= world_max.x) { ship_pos.x = world_max.x; ship_velocity_x *= -1.0f; }
-				//if (ship_pos.y <        0.0f) { ship_pos.y =        0.0f; ship_velocity_y *= -1.0f; }
-				//if (ship_pos.y >= world_max.y) { ship_pos.y = world_max.y; ship_velocity_y *= -1.0f; }
 
 				if (altitude < 0.0f) {
 					altitude = 0.0f;
@@ -572,7 +574,7 @@ public:
 					ship_velocity_z = 0.0f; // z
 				}
 
-				// engine speed sound reletive to the avg throttle
+				// engine speed sound relative to the avg throttle
 				engine_sound_speed = 1.0f + 2.0f * ship_avr_throttle;
 				ma_engine.SetPitch(sound_ship_id, engine_sound_speed);
 
@@ -862,7 +864,7 @@ public:
 			DrawScore( score_pos);
 
 			if (ship_autolevel_toggle)
-				DrawStringDecal({ float(ScreenWidth() / 2 - 12 * 8 / 2), 25.0f }, "Autoleveling ON", olc::GREEN);
+				DrawStringDecal({ float(ScreenWidth() / 2 - 60), 70.0f }, "Autoleveling ON", olc::GREEN);
 
 		}
 	}
@@ -973,8 +975,37 @@ public:
 	}
 
 
-	int ShowInventory(olc::vi2d pos) {
-		int offs = 20;
+	//int ShowInventory(olc::vi2d pos) {
+	//	int offs = 20;
+	//	int j;
+	//	int inv_weight = 0;
+	//	int cargo_weight = 0;
+
+	//	if (inventory.size() > 0) {
+	//		for (j = 0; j < inventory.size(); ++j) {
+
+	//			// TODO: draw the orb in inventory GUI
+	//			DrawDecal({ 13.0f, float(62 + j * offs) }, dec_orb, olc::vf2d{ 0.1f, 0.1f });
+
+	//			ss.str(""); ss << static_cast<char>(inventory[j].cargoType);
+	//			DrawStringDecal({ 13.0f+8, float(62+8 + j * offs) }, ss.str(), olc::GREEN);
+
+
+	//			inv_weight += (inventory[j].cargoType - 48) * 100;
+	//		}
+	//		DrawRectDecal({ float(pos.x), float(pos.y) }, { 80.0f, float(offs * j + offs ) });
+	//	}
+	//	else {
+	//		DrawStringDecal({ float(pos.x + 10 + 8 * 8), float(pos.y) }, "Empty", olc::RED);
+	//	}
+
+	//	DrawStringDecal({ float(pos.x), float(pos.y) }, "Inventory", olc::GREEN);
+
+	//	return inv_weight;	// return the weight of inventory
+	//}
+
+	int ShowInventory(olc::vf2d pos) {
+		float offs = 20;
 		int j;
 		int inv_weight = 0;
 		int cargo_weight = 0;
@@ -983,24 +1014,25 @@ public:
 			for (j = 0; j < inventory.size(); ++j) {
 
 				// TODO: draw the orb in inventory GUI
-				DrawDecal({ 13.0f, float(62 + j * offs) }, dec_orb, olc::vf2d{ 0.1f, 0.1f });
+				DrawDecal({ pos.x+3, float(pos.y+12 + j * offs) }, dec_orb, olc::vf2d{ 0.1f, 0.1f });
 
 				ss.str(""); ss << static_cast<char>(inventory[j].cargoType);
-				DrawStringDecal({ 13.0f+8, float(62+8 + j * offs) }, ss.str(), olc::GREEN);
+				DrawStringDecal({ pos.x + 10, float(pos.y+20 + j * offs) }, ss.str(), olc::GREEN);
 
 
 				inv_weight += (inventory[j].cargoType - 48) * 100;
 			}
-			DrawRectDecal({ float(pos.x), float(pos.y) }, { 80.0f, float(offs * j + offs ) });
+			// DrawRectDecal({ float(pos.x), float(pos.y) }, { 80.0f, float(offs * j + offs) });
 		}
 		else {
-			DrawStringDecal({ float(pos.x + 10 + 8 * 8), float(pos.y) }, "Empty", olc::RED);
+			DrawStringDecal({ float(pos.x), float(pos.y+10) }, "Empty", olc::RED);
 		}
 
 		DrawStringDecal({ float(pos.x), float(pos.y) }, "Inventory", olc::GREEN);
 
 		return inv_weight;	// return the weight of inventory
 	}
+
 
 	void CountTheChicken(int cargoType) {
 		switch (cargoType)
@@ -1015,7 +1047,7 @@ public:
 		case '7':
 		case '8':
 		case '9':
-			player_points += cargoType * 23;
+			player_points += cargoType * 23 * inventory.size();
 			player_deliveries++;
 			break;
 
@@ -1261,8 +1293,9 @@ public:
 	void DrawMinimap(olc::vi2d mm_pos, olc::vf2d ship_pos) {
 		float scale_x = float(minimap_size.x) / world_max.x;
 		float scale_y = float(minimap_size.y) / world_max.y;
+
 		mm_pos = {1,1};
-		SetPixelMode(olc::Pixel::Mode::ALPHA);
+//		SetPixelMode(olc::Pixel::Mode::ALPHA);
 		// olc::Sprite *oldDrawTarget = GetDrawTarget();
 		SetDrawTarget(spr_minimap);
 		Clear(olc::DARK_BLUE);
@@ -1305,7 +1338,7 @@ public:
 		dec_minimap->Update();
 		DrawDecal( minimap_position, dec_minimap);
 		SetDrawTarget(nullptr);
-		SetPixelMode(olc::Pixel::Mode::NORMAL);
+//		SetPixelMode(olc::Pixel::Mode::NORMAL);
 	}
 
 	// TODO:  small bar offset bug on these three instruments

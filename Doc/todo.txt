@@ -5,14 +5,11 @@ Date: 26 August 2024 13:19
 Parent: dffe32ba
 Tag: olcJam24-NO-NEW-BUGS-PLEASE
 
-- Add a multiplyer to points when picking up more orbs
+- Function to random generate maps
 - Improve mouse support
 - inventory on ship as gfx must be sentered and offset correctly scaled
-- Fix the ships throttle
-	- Trottle should stay the same when tilting/yawing
+- Trottle should stay the same when tilting/yawing
+- Align the ui items
 
 Commit comment
-Added border function to map
-Ship is now aligned to fly inside the map 
-Halved the bunch back from maps edges
- 
+
