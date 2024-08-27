@@ -387,7 +387,7 @@ namespace olc
         unsigned long long length;
         ma_sound_get_length_in_pcm_frames(vecSounds.at(id), &length);
 
-        unsigned long long frame = long long(length * location);
+        unsigned long long frame = (long long)(length * location);
         
         ma_sound_seek_to_pcm_frame(vecSounds.at(id), frame);
     }
