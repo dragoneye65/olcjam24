@@ -560,31 +560,6 @@ public:
 				game_toggle_intro = !game_toggle_intro;
 			}
 
-
-
-			// TODO: move to DrawHUD
-			//if (!cargo_no_pickup) {
-			//	ship_docket_at_cargoType = CheckDropPickupOnLanding();
-
-			//	if (ship_docket_at_cargoType != 0) {
-			//		switch (ship_docket_at_cargoType) {
-			//		case 'd':
-			//			tmpstr = "DROPZONE";
-			//			break;
-			//		case '*':
-			//			tmpstr = "STARTPAD";
-			//			break;
-			//		default:
-			//			tmpstr = "";
-			//			break;
-			//		}
-
-			//		// show on screen
-			//		DrawString({ ScreenWidth() / 2 - 40, 10 }, "Docked on", olc::GREEN);
-			//		DrawString({ ScreenWidth() / 2 + 40, 10 }, tmpstr, olc::YELLOW);
-			//	}
-			//}
-
 			// no more cargo to pick up, if you deliver this you win -------
 			int items_in_cargos = int(std::count_if(cargos.begin(), cargos.end(),
 				[](cargo c) { return isdigit(c.cargoType); }));
@@ -595,25 +570,12 @@ public:
 					game_state = state::GAMEWON;  // goal!!!
 			}
 
-			//// Show inventory and calculate weight
-			//cargo_weight = ShowInventory(inventory_pos);
-			//ship_weight = ship_net_weight + cargo_weight;
-
-			//tmpstr = "Cargo Weight";
-			//DrawString({ 100,10 }, tmpstr, olc::GREEN);
-			//ss.str(""); ss << std::setw(4) << cargo_weight;
-			//DrawString({ 100+8*8, 18 }, ss.str(), olc::RED);
-
-			//tmpstr = "Score";
-			//DrawString({ 10,10 }, tmpstr, olc::GREEN);
-			//ss.str(""); ss << std::setw(5) << int(player_points);
-			//DrawString({ 10,18 }, ss.str(), olc::RED);
-
 			// Dont draw anything while showing the intro screen
 			if (!game_toggle_intro) {
 				DrawGameMapOnScreen(ship_pos);
 				DrawHUD(hud_toggle);
 				DrawMinimap(minimap_position, ship_pos);
+				DrawInventoryOnShip();
 				DrawShip();
 				DrawMouseCursor(mouse_control_toggle);
 			}
@@ -822,6 +784,26 @@ public:
 		// Show inventory and calculate weight
 		cargo_weight = ShowInventory(pos);
 		ship_weight = ship_net_weight + cargo_weight;
+	}
+
+	void DrawInventoryOnShip() {
+		if ( inventory.size() > 0) {
+			// draw the inventory scaled on altitude same as ship
+			float inventory_show_offset_x = 0.0f;
+			float inventory_offset_step_x = 10.0f;
+			for (int i = 0; i < inventory.size(); ++i) {
+				// Draw the orb
+				float dec_scale = 0.1f + 0.2f * (altitude / max_altitude);
+				float cx = float( ship_on_screen_pos.x + inventory_show_offset_x);
+				float cy = float( ship_on_screen_pos.y);
+
+				float center_x = cx - (spr_orb->width * dec_scale) / 2;
+				float center_y = cy - (spr_orb->height * dec_scale) / 2;
+				DrawDecal(olc::vf2d{ center_x, center_y }, dec_orb, olc::vf2d{ dec_scale,dec_scale });
+				inventory_show_offset_x += inventory_offset_step_x;
+
+			}
+		}
 	}
 
 	void DrawInventoryWeight( olc::vf2d pos) {

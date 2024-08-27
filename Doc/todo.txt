@@ -1,4 +1,16 @@
-Git tag for jam submision: 81802d6b
+Git tag for jam submision: 586efe44  (olcJam24-NO-NEW-BUGS-PLEASE)
+Commit 586efe443f493bf4f3f769d6ad8d15c239fc6efb
+Author: DragonEye65 
+Date: 26 August 2024 13:19
+Parent: dffe32ba
+Tag: olcJam24-NO-NEW-BUGS-PLEASE
 
-- Fix sound bug (terrible sound in web on some computer)
-- Gravity is too overwhelming when tilting the ship
+
+
+- Better mouse support
+- Alignment of the map in x2,y2 and the ship is extending flight past the map 
+- Show the orbs as gfx in inventory
+- Show the inventory on ship as gfx
+- Fix the ships throttle
+	- Trottle should stay the same when tilting/yawing
+
