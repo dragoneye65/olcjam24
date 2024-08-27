@@ -3,4 +3,4 @@
 
 You fly around picking up cargo and deliver it to a dropzone.
 
-![Hover Run](https://github.com/dragoneye65/olcjam24/blob/main/Doc/gamescreendump.png)
+![Hover Run](https://github.com/dragoneye65/olcjam24/blob/main/Doc/screendump.jpg)
