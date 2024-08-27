@@ -944,17 +944,24 @@ public:
 
 
 	int ShowInventory(olc::vi2d pos) {
-		int offs = 10;
+		int offs = 20;
 		int j;
 		int inv_weight = 0;
 		int cargo_weight = 0;
+
 		if (inventory.size() > 0) {
 			for (j = 0; j < inventory.size(); ++j) {
+
+				// TODO: draw the orb in inventory GUI
+				DrawDecal({ 13.0f, float(62 + j * offs) }, dec_orb, olc::vf2d{ 0.1f, 0.1f });
+
 				ss.str(""); ss << static_cast<char>(inventory[j].cargoType);
-				DrawStringDecal({ 13.0f, float(62 + j * offs) }, ss.str(), olc::GREEN);
+				DrawStringDecal({ 13.0f+8, float(62+8 + j * offs) }, ss.str(), olc::GREEN);
+
+
 				inv_weight += (inventory[j].cargoType - 48) * 100;
 			}
-			DrawRectDecal({ float(pos.x), float(pos.y + 8) }, { 80.0f, float(offs * j + 3 ) });
+			DrawRectDecal({ float(pos.x), float(pos.y) }, { 80.0f, float(offs * j + offs ) });
 		}
 		else {
 			DrawStringDecal({ float(pos.x + 10 + 8 * 8), float(pos.y) }, "Empty", olc::RED);
