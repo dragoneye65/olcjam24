@@ -28,6 +28,11 @@ public:
 		int cargoType;			// type of cargo: 
 	};
 
+	struct ClipRect {
+		olc::vf2d tl;
+		olc::vf2d br;
+	};
+
 	// *** Sounds ***
 	olc::MiniAudio ma_engine;
 	int sound_bgm_id = 0;
@@ -90,7 +95,7 @@ public:
 	float ship_angle_y = 0.0;
 	olc::vf2d ship_pos;
 	olc::vi2d ship_on_screen_pos;
-
+	int cargo_weight = 0;
 
 	// *** Game ***
 	// first char based game map, don't need it, can generate it
@@ -104,6 +109,7 @@ public:
 	enum state game_state = state::INTRO;
 	float game_object_proximity_limit = 10.0f;
 	float game_clip_objects_radius = 120.0f;
+	ClipRect clip_rectangle = {{ -200.0f, -140.0f }, { 200.0f, 140.0f} };
 	bool game_toggle_intro = false;
 	float gravity = 0.2f;
 	float altitude = 0.0f;									// 0m  sea level
@@ -116,6 +122,9 @@ public:
 	std::vector<cargo> cargos;	// yea you guessed it
 	bool cargo_no_pickup = false;
 	olc::vi2d inventory_pos = { 10, 50 };
+	bool mouse_control_toggle = false;
+	bool hud_toggle = true;
+	olc::vf2d instrument_pos = { 500.0f, 200.0f };
 
 	// need some temperary stuff
 	std::string tmpstr;			
@@ -270,8 +279,8 @@ public:
 		Clear(olc::VERY_DARK_BLUE);
 
 		// Draw mouse cursor
-		DrawLineDecal(mouse_pos - olc::vi2d{ 5,5 }, mouse_pos + olc::vi2d{ 5,5 }, olc::RED);
-		DrawLineDecal(mouse_pos - olc::vi2d{ -5,5 }, mouse_pos + olc::vi2d{ -5,5 }, olc::RED);
+		//DrawLineDecal(mouse_pos - olc::vi2d{ 5,5 }, mouse_pos + olc::vi2d{ 5,5 }, olc::RED);
+		//DrawLineDecal(mouse_pos - olc::vi2d{ -5,5 }, mouse_pos + olc::vi2d{ -5,5 }, olc::RED);
 		//ss.str(""); ss << "(" << mouse_pos.x << "," << mouse_pos.y << ")";
 		// DrawString(mouse_pos, ss.str(), olc::RED);
 
@@ -311,57 +320,59 @@ public:
 				mouse_ship_response.y *= 0.01f;
 			}
 
-			// move right 
-			if (mouse_pos.x >= (ship_on_screen_pos.x + mouse_dead_zone)) {
-				throttle1 += fElapsedTime * mouse_ship_response.x;
-				throttle2 += fElapsedTime * mouse_ship_response.x;
-				throttle3 -= fElapsedTime * mouse_ship_response.x;
-				throttle4 -= fElapsedTime * mouse_ship_response.x;
-				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
-				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
-				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
-				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
-			}
-			// move left 
-			if (mouse_pos.x < (ship_on_screen_pos.x - mouse_dead_zone)) {
-				throttle1 -= fElapsedTime * mouse_ship_response.x;
-				throttle2 -= fElapsedTime * mouse_ship_response.x;
-				throttle3 += fElapsedTime * mouse_ship_response.x;
-				throttle4 += fElapsedTime * mouse_ship_response.x;
-				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
-				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
-				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
-				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
-			}
+			if (mouse_control_toggle) {
+				// move right 
+				if (mouse_pos.x >= (ship_on_screen_pos.x + mouse_dead_zone)) {
+					throttle1 += fElapsedTime * mouse_ship_response.x;
+					throttle2 += fElapsedTime * mouse_ship_response.x;
+					throttle3 -= fElapsedTime * mouse_ship_response.x;
+					throttle4 -= fElapsedTime * mouse_ship_response.x;
+					if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
+					if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
+					if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
+					if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+				}
+				// move left 
+				if (mouse_pos.x < (ship_on_screen_pos.x - mouse_dead_zone)) {
+					throttle1 -= fElapsedTime * mouse_ship_response.x;
+					throttle2 -= fElapsedTime * mouse_ship_response.x;
+					throttle3 += fElapsedTime * mouse_ship_response.x;
+					throttle4 += fElapsedTime * mouse_ship_response.x;
+					if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
+					if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
+					if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
+					if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+				}
 
-			// move down
-			if (mouse_pos.y >= (ship_on_screen_pos.y + mouse_dead_zone)) {
-				throttle1 += fElapsedTime * mouse_ship_response.y;
-				throttle2 -= fElapsedTime * mouse_ship_response.y;
-				throttle3 -= fElapsedTime * mouse_ship_response.y;
-				throttle4 += fElapsedTime * mouse_ship_response.y;
-				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle; if (throttle1 > 1.0) throttle1 = 1.0;
-				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle; if (throttle2 > 1.0) throttle2 = 1.0;
-				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle; if (throttle3 > 1.0) throttle3 = 1.0;
-				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle; if (throttle4 > 1.0) throttle4 = 1.0;
-			}
+				// move down
+				if (mouse_pos.y >= (ship_on_screen_pos.y + mouse_dead_zone)) {
+					throttle1 += fElapsedTime * mouse_ship_response.y;
+					throttle2 -= fElapsedTime * mouse_ship_response.y;
+					throttle3 -= fElapsedTime * mouse_ship_response.y;
+					throttle4 += fElapsedTime * mouse_ship_response.y;
+					if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle; if (throttle1 > 1.0) throttle1 = 1.0;
+					if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle; if (throttle2 > 1.0) throttle2 = 1.0;
+					if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle; if (throttle3 > 1.0) throttle3 = 1.0;
+					if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle; if (throttle4 > 1.0) throttle4 = 1.0;
+				}
 
-			// move down
-			if (mouse_pos.y < (ship_on_screen_pos.y - mouse_dead_zone)) {
-				throttle1 -= fElapsedTime * mouse_ship_response.y;
-				throttle2 += fElapsedTime * mouse_ship_response.y;
-				throttle3 += fElapsedTime * mouse_ship_response.y;
-				throttle4 -= fElapsedTime * mouse_ship_response.y;
-				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
-				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
-				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
-				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+				// move down
+				if (mouse_pos.y < (ship_on_screen_pos.y - mouse_dead_zone)) {
+					throttle1 -= fElapsedTime * mouse_ship_response.y;
+					throttle2 += fElapsedTime * mouse_ship_response.y;
+					throttle3 += fElapsedTime * mouse_ship_response.y;
+					throttle4 -= fElapsedTime * mouse_ship_response.y;
+					if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
+					if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
+					if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
+					if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+				}
 			}
 
 
 			ship_throttle_key_held = false;
 			// power to all engines
-			if (GetKey(olc::Key::UP).bHeld || mouse_wheel > 0) {
+			if (GetKey(olc::Key::UP).bHeld || ((mouse_wheel > 0) && mouse_control_toggle) ) {
 				float mouse_response = 1.0f;
 				if (mouse_wheel > 0)
 					mouse_response = 2.0f;
@@ -376,7 +387,7 @@ public:
 				}
 			}
 
-			if (GetKey(olc::Key::DOWN).bHeld || mouse_wheel < 0) {
+			if (GetKey(olc::Key::DOWN).bHeld || ((mouse_wheel < 0) && mouse_control_toggle)) {
 				throttle1 -= fElapsedTime * ship_response; if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;
 				throttle2 -= fElapsedTime * ship_response; if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;
 				throttle3 -= fElapsedTime * ship_response; if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;
@@ -542,16 +553,7 @@ public:
 				game_toggle_intro = !game_toggle_intro;
 			}
 
-			// Dont draw anything while showing the intro screen
-			if (!game_toggle_intro) {
-				DrawAltitude(500, 200);
-				DrawZVelocity(530, 200, ship_velocity_z); // *velocity_scale);
-				DrawThrottle(560, 200);
-				DrawMinimap(minimap_position, ship_pos);
-				DrawGameMapOnScreen(ship_pos);
-				DrawShip();
-			} else
-				Instructions(instructions_pos + olc::vi2d{ 30,50 });
+
 
 
 			if (!cargo_no_pickup) {
@@ -586,19 +588,30 @@ public:
 					game_state = state::GAMEWON;  // goal!!!
 			}
 
-			// Show inventory and calculate weight
-			int cargo_weight = ShowInventory(inventory_pos);
-			ship_weight = ship_net_weight + cargo_weight;
+			//// Show inventory and calculate weight
+			//cargo_weight = ShowInventory(inventory_pos);
+			//ship_weight = ship_net_weight + cargo_weight;
 
-			tmpstr = "Cargo Weight";
-			DrawString({ 100,10 }, tmpstr, olc::GREEN);
-			ss.str(""); ss << std::setw(4) << cargo_weight;
-			DrawString({ 100+8*8, 18 }, ss.str(), olc::RED);
+			//tmpstr = "Cargo Weight";
+			//DrawString({ 100,10 }, tmpstr, olc::GREEN);
+			//ss.str(""); ss << std::setw(4) << cargo_weight;
+			//DrawString({ 100+8*8, 18 }, ss.str(), olc::RED);
 
-			tmpstr = "Score";
-			DrawString({ 10,10 }, tmpstr, olc::GREEN);
-			ss.str(""); ss << std::setw(5) << int(player_points);
-			DrawString({ 10,18 }, ss.str(), olc::RED);
+			//tmpstr = "Score";
+			//DrawString({ 10,10 }, tmpstr, olc::GREEN);
+			//ss.str(""); ss << std::setw(5) << int(player_points);
+			//DrawString({ 10,18 }, ss.str(), olc::RED);
+
+			// Dont draw anything while showing the intro screen
+			if (!game_toggle_intro) {
+				DrawGameMapOnScreen(ship_pos);
+				DrawMinimap(minimap_position, ship_pos);
+				DrawShip();
+				DrawMouseCursor(mouse_control_toggle);
+				DrawHUD(hud_toggle);
+			}
+			else
+				Instructions(instructions_pos + olc::vi2d{ 30,50 });
 
 			// show alert if decending dangerously fast
 			timer_descent_vel_alert_active = false;
@@ -659,10 +672,6 @@ public:
 				}
 			}
 
-			// show mouse cursor + position
-			DrawLineDecal(mouse_pos - olc::vi2d{ 5,5 }, mouse_pos + olc::vi2d{ 5,5 }, olc::WHITE);
-			DrawLineDecal(mouse_pos - olc::vi2d{ -5,5 }, mouse_pos + olc::vi2d{ -5,5 }, olc::WHITE);
-
 			// must start the sounds again if they are finished playing
 			if (!ma_engine.IsPlaying(sound_ship_id)) 
 				ma_engine.Toggle(sound_ship_id, true);
@@ -677,11 +686,21 @@ public:
 		} // endif: state_GAMEON ---
 
 
-		// Toggle background music
-		if (GetKey(olc::Key::M).bPressed) {
-			sound_music_toggle = !sound_music_toggle;
-			ma_engine.Toggle(sound_bgm_id);
+		// shift commands
+		if (GetKey(olc::Key::SHIFT).bHeld) {
+			// toggle mouse control
+			if (GetKey(olc::Key::M).bPressed) {
+				mouse_control_toggle = !mouse_control_toggle;
+			}
 		}
+		else {
+			// Toggle background music
+			if (GetKey(olc::Key::M).bPressed) {
+				sound_music_toggle = !sound_music_toggle;
+				ma_engine.Toggle(sound_bgm_id);
+			}
+		}
+
 
 		// Game is Won state
 		if (game_state == state::GAMEWON) {
@@ -757,6 +776,37 @@ public:
 		return true;
 	} // end Update ---
 
+
+	void DrawHUD(bool show) {
+		if (show) {
+			DrawAltitude(instrument_pos);
+			DrawZVelocity(instrument_pos + olc::vf2d{30.0f, 0.0f}, ship_velocity_z); // *velocity_scale);
+			DrawThrottle(instrument_pos + olc::vf2d{60.0f, 0.0f});
+
+			// Show inventory and calculate weight
+			cargo_weight = ShowInventory(inventory_pos);
+			ship_weight = ship_net_weight + cargo_weight;
+
+			tmpstr = "Cargo Weight";
+			DrawString({ 100,10 }, tmpstr, olc::GREEN);
+			ss.str(""); ss << std::setw(4) << cargo_weight;
+			DrawString({ 100 + 8 * 8, 18 }, ss.str(), olc::RED);
+
+			tmpstr = "Score";
+			DrawString({ 10,10 }, tmpstr, olc::GREEN);
+			ss.str(""); ss << std::setw(5) << int(player_points);
+			DrawString({ 10,18 }, ss.str(), olc::RED);
+
+		}
+	}
+
+	void DrawMouseCursor(bool show) {
+		// show mouse cursor
+		if (show) {
+			DrawLineDecal(mouse_pos - olc::vi2d{ 5,5 }, mouse_pos + olc::vi2d{ 5,5 }, olc::WHITE);
+			DrawLineDecal(mouse_pos - olc::vi2d{ -5,5 }, mouse_pos + olc::vi2d{ -5,5 }, olc::WHITE);
+		}
+	}
 
 	void RestartGame() {
 		game_state = state::INTRO;
@@ -867,13 +917,13 @@ public:
 				DrawString({ 13, 62 + j * offs }, ss.str(), olc::GREEN);
 				inv_weight += (inventory[j].cargoType - 48) * 100;
 			}
-			DrawRect({ pos.x, pos.y + 8 }, { 80,offs * j + 3 });
+			DrawRectDecal({ float(pos.x), float(pos.y + 8) }, { 80.0f, float(offs * j + 3 ) });
 		}
 		else {
-			DrawString({ pos.x + 10 + 8 * 8, pos.y }, "Empty", olc::RED);
+			DrawStringDecal({ float(pos.x + 10 + 8 * 8), float(pos.y) }, "Empty", olc::RED);
 		}
 
-		DrawString({ pos.x, pos.y }, "Inventory", olc::GREEN);
+		DrawStringDecal({ float(pos.x), float(pos.y) }, "Inventory", olc::GREEN);
 
 		return inv_weight;	// return the weight of inventory
 	}
@@ -959,11 +1009,21 @@ public:
 			cy = (cargos[i].pos.y - ship_pos.y + ship_on_screen_pos.y);
 			// don't draw the object if it is outside the clip radius
 			// Radius
-			if (sqrt((ship_pos.x - cargos[i].pos.x) * (ship_pos.x - cargos[i].pos.x) + (ship_pos.y - cargos[i].pos.y) * (ship_pos.y - cargos[i].pos.y)) < game_clip_objects_radius) {
-				center_x = cx - (spr_bg_tile->width * bg_tile_scale_x)/2 ;
-				center_y = cy - (spr_bg_tile->height * bg_tile_scale_y)/2 ;
+			//if (sqrt((ship_pos.x - cargos[i].pos.x) * (ship_pos.x - cargos[i].pos.x) + (ship_pos.y - cargos[i].pos.y) * (ship_pos.y - cargos[i].pos.y)) < game_clip_objects_radius) {
+			//	center_x = cx - (spr_bg_tile->width * bg_tile_scale_x)/2 ;
+			//	center_y = cy - (spr_bg_tile->height * bg_tile_scale_y)/2 ;
+			//	DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
+			//}
+
+			// clip rect
+			if ((cargos[i].pos.x - ship_pos.x) > clip_rectangle.tl.x && (cargos[i].pos.x - ship_pos.x) < clip_rectangle.br.x 
+				&& (cargos[i].pos.y - ship_pos.y) > clip_rectangle.tl.y && (cargos[i].pos.y - ship_pos.y) < clip_rectangle.br.y) {
+				center_x = cx - (spr_bg_tile->width * bg_tile_scale_x) / 2;
+				center_y = cy - (spr_bg_tile->height * bg_tile_scale_y) / 2;
 				DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
 			}
+
+
 		}
 
 		// then draw the objects on top
@@ -1016,7 +1076,7 @@ public:
 
 				if (cargos[i].cargoType != ' ') {
 					ss.str(""); ss << std::setw(1) << static_cast<char>(cargos[i].cargoType);
-					DrawString({ int(cx) - 3,int(cy) - 3 }, ss.str());
+					DrawStringDecal({ cx - 3.0f,cy - 3.0f }, ss.str());
 					DrawStringDecal({ float(int(cx) - 3),float(int(cy) - 3 )}, ss.str());
 				}
 			}
@@ -1142,44 +1202,43 @@ public:
 		SetPixelMode(olc::Pixel::Mode::NORMAL);
 	}
 
-	void DrawAltitude(int x, int y) {
-		float fx = float(x), fy = float(y);
+	void DrawAltitude(olc::vf2d pos) {
 		float BarHeight = 100;
 		float BarWidth = 20;
 		float scale = max_altitude / BarHeight;
 		float AltBarHeight = altitude / scale;
 
-		DrawRectDecal({ fx,fy }, { BarWidth, BarHeight });
-		FillRectDecal({ fx + 1,(fy + 100) - (AltBarHeight - 2) }, { BarWidth - 2, (AltBarHeight - 4) }, olc::RED);
+		DrawRectDecal({ pos.x, pos.y }, { BarWidth, BarHeight });
+		FillRectDecal({ pos.x + 1,(pos.y + 100) - (AltBarHeight - 2) }, { BarWidth - 2, (AltBarHeight - 4) }, olc::RED);
 
 		tmpstr = "Alt";
-		DrawStringDecal({ 500.0f,190.0f }, tmpstr, olc::GREY);
+		DrawStringDecal( pos + olc::vf2d{ 0.0f, -10.0f }, tmpstr, olc::GREY);
 		ss.str(""); ss << std::setw(3) << int(altitude);
 		tmpstr = ss.str();
-		DrawStringDecal({ 500.0f,305.0f }, tmpstr, olc::YELLOW);
+		DrawStringDecal( pos + olc::vf2d{ 0.0f, 105.0f }, tmpstr, olc::YELLOW);
 	}
 
-	void DrawThrottle(int x, int y) {
+	void DrawThrottle(olc::vf2d pos) {
 		float BarHeight = 100;
 		float BarWidth = 20;
-		float fx = float(x), fy = float(y);
 
-		DrawRectDecal({ fx, fy }, { BarWidth, BarHeight });
-		FillRectDecal({ fx + 1,(fy + 100) - int((BarHeight*ship_avr_throttle - 2)) }, { BarWidth - 2, BarHeight*ship_avr_throttle - 4 }, olc::RED);
+		DrawRectDecal( pos, { BarWidth, BarHeight });
+		FillRectDecal( pos + olc::vf2d{ 1.0f, pos.y -100.0f - (BarHeight*ship_avr_throttle - 2) }, { BarWidth - 2, BarHeight*ship_avr_throttle - 4 }, olc::RED);
 
 		tmpstr = "Thr";
-		DrawStringDecal({ fx,fy-10 }, tmpstr, olc::GREY);
+		DrawStringDecal(pos + olc::vf2d{ 0.0f, -10 }, tmpstr, olc::GREY);
 		ss.str(""); ss << std::setw(3) << int(ship_avr_throttle);
 		tmpstr = ss.str();
-		DrawStringDecal({ fx,fy-105 }, tmpstr, olc::YELLOW);
+		DrawStringDecal( pos + olc::vf2d{ 0.0f, -105.0f }, tmpstr, olc::YELLOW);
 	}
 
-	void DrawZVelocity(int x, int y, float ship_vel) {
-		int BarHeight = 100;
-		int BarWidth = 20;
+
+	void DrawZVelocity(olc::vf2d pos, float ship_vel) {
+		float BarHeight = 100.0f;
+		float BarWidth = 20.0f;
 		float scale = game_critical_landing_velocity / float(BarHeight);
 		float trueVel = ship_velocity_z * ship_velocity_to_player_scale; // *velocity_scale;
-		int AltBarHeight = int(fabs(trueVel / scale));
+		float AltBarHeight = fabs(trueVel / scale);
 		olc::Pixel col = olc::GREEN;
 
 		if (AltBarHeight > BarHeight)
@@ -1189,23 +1248,23 @@ public:
 			col = olc::RED;
 		}
 
-		DrawRectDecal({ float(x),float(y) }, { float(BarWidth), float(BarHeight) });
-		FillRectDecal({ float(x + 1),float((y + 100) - (AltBarHeight - 2) )}, { float(BarWidth - 2), float((AltBarHeight - 4)) }, col);
+		DrawRectDecal(pos, { BarWidth, BarHeight });
+		FillRectDecal(pos + olc::vf2d{ 1.0f, 100.0f - (AltBarHeight - 2) }, { BarWidth - 2, AltBarHeight - 4 }, col);
 
 		// Velocity descent warning light
 		if (timer_descent_vel_alert_active) {
 			if (timer_toggle_on_state) {
-				FillRectDecal({ float(x - 1 * 8), float(y - 10) }, { 5.0f * 8, 10.0f }, olc::RED);
+				FillRectDecal({ pos.x - 1 * 8, pos.y - 10 }, { 5.0f * 8, 10.0f }, olc::RED);
 				sound_altitude_alert_play = true;
 			}
 		}
 
-		DrawStringDecal({ float(x),float(y - 10) }, "Vel", olc::GREY);
+		DrawStringDecal({ pos.x, pos.y - 10 }, "Vel", olc::GREY);
 		ss.str(""); ss << std::setw(3) << int(trueVel);
-		if ( trueVel < 0)
-			DrawStringDecal({ float(x),float(y + 105) }, ss.str(), olc::RED);
+		if (trueVel < 0)
+			DrawStringDecal({ pos.x, pos.y + 105 }, ss.str(), olc::RED);
 		else
-			DrawStringDecal({ float(x),float(y + 105) }, ss.str(), olc::YELLOW);
+			DrawStringDecal({ pos.x, pos.y + 105 }, ss.str(), olc::YELLOW);
 	}
 
 };	// Class Game
