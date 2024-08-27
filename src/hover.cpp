@@ -124,7 +124,10 @@ public:
 	olc::vi2d inventory_pos = { 10, 50 };
 	bool mouse_control_toggle = false;
 	bool hud_toggle = true;
-	olc::vf2d instrument_pos = { 500.0f, 200.0f };
+	olc::vf2d instrument_pos = { 550.0f, 150.0f };
+	olc::vf2d docked_pos = { 0.0f ,0.0f };				// initialized in oncreate 
+	olc::vf2d inventory_weight_pos = { 100.0f, 10.0f };
+	olc::vf2d score_pos{ 10.0f,10.0f };
 
 	// need some temperary stuff
 	std::string tmpstr;			
@@ -190,12 +193,15 @@ public:
 		}
 	}
 
+
+	/*
 	void DrawCargoPos(olc::vi2d txtpos, olc::vf2d p) {
 		tmpstr = "CargoPos ";
 		DrawString(txtpos, tmpstr);
 		ss.str("");	ss << p.x; tmpstr = ss.str(); DrawString({ txtpos.x + 100, txtpos.y }, tmpstr, olc::YELLOW);
 		ss.str("");	ss << p.y; tmpstr = ss.str(); DrawString({ txtpos.x + 160, txtpos.y }, tmpstr, olc::YELLOW);
 	}
+	*/
 
 	bool OnUserCreate() override
 	{
@@ -231,6 +237,7 @@ public:
 
 		ship_on_screen_pos = { ScreenWidth() / 2,ScreenHeight() / 2 };
 		minimap_position = { ScreenWidth() - minimap_size.x - 2, 10 };
+		docked_pos = { float(ScreenWidth() / 2 - 40), 10.0f };
 
 		InitGameMap();
 		ship_pos = startpos;
@@ -555,28 +562,28 @@ public:
 
 
 
+			// TODO: move to DrawHUD
+			//if (!cargo_no_pickup) {
+			//	ship_docket_at_cargoType = CheckDropPickupOnLanding();
 
-			if (!cargo_no_pickup) {
-				ship_docket_at_cargoType = CheckDropPickupOnLanding();
+			//	if (ship_docket_at_cargoType != 0) {
+			//		switch (ship_docket_at_cargoType) {
+			//		case 'd':
+			//			tmpstr = "DROPZONE";
+			//			break;
+			//		case '*':
+			//			tmpstr = "STARTPAD";
+			//			break;
+			//		default:
+			//			tmpstr = "";
+			//			break;
+			//		}
 
-				if (ship_docket_at_cargoType != 0) {
-					switch (ship_docket_at_cargoType) {
-					case 'd':
-						tmpstr = "DROPZONE";
-						break;
-					case '*':
-						tmpstr = "STARTPAD";
-						break;
-					default:
-						tmpstr = "";
-						break;
-					}
-
-					// show on screen
-					DrawString({ ScreenWidth() / 2 - 40, 10 }, "Docked on", olc::GREEN);
-					DrawString({ ScreenWidth() / 2 + 40, 10 }, tmpstr, olc::YELLOW);
-				}
-			}
+			//		// show on screen
+			//		DrawString({ ScreenWidth() / 2 - 40, 10 }, "Docked on", olc::GREEN);
+			//		DrawString({ ScreenWidth() / 2 + 40, 10 }, tmpstr, olc::YELLOW);
+			//	}
+			//}
 
 			// no more cargo to pick up, if you deliver this you win -------
 			int items_in_cargos = int(std::count_if(cargos.begin(), cargos.end(),
@@ -605,10 +612,10 @@ public:
 			// Dont draw anything while showing the intro screen
 			if (!game_toggle_intro) {
 				DrawGameMapOnScreen(ship_pos);
+				DrawHUD(hud_toggle);
 				DrawMinimap(minimap_position, ship_pos);
 				DrawShip();
 				DrawMouseCursor(mouse_control_toggle);
-				DrawHUD(hud_toggle);
 			}
 			else
 				Instructions(instructions_pos + olc::vi2d{ 30,50 });
@@ -776,27 +783,71 @@ public:
 		return true;
 	} // end Update ---
 
+	void DrawHUDBackground() {
+		// just do some rect fill for now, gfx later
+		olc::Pixel col = olc::Pixel(olc::VERY_DARK_BLUE);
+
+		FillRectDecal( olc::vf2d{ 0.0f, 0.0f }, olc::vf2d{ float(ScreenWidth()), 80.0f}, col);
+		FillRectDecal( olc::vf2d{ float(ScreenWidth() - 150.0f), 0.0f }, olc::vf2d{ 150.0f, float(ScreenHeight()) }, col);
+		FillRectDecal( olc::vf2d{ 0.0f, 0.0f }, olc::vf2d{ 150.0f, float(ScreenHeight()) }, col);
+		FillRectDecal( olc::vf2d{ 0.0f, float(ScreenHeight()-80) }, olc::vf2d{ float(ScreenWidth()), 80.0f }, col);
+	}
+
+	void DrawDockedSite(olc::vf2d pos) {
+		if (!cargo_no_pickup) {
+			ship_docket_at_cargoType = CheckDropPickupOnLanding();
+
+			if (ship_docket_at_cargoType != 0) {
+				switch (ship_docket_at_cargoType) {
+				case 'd':
+					tmpstr = "DROPZONE";
+					break;
+				case '*':
+					tmpstr = "STARTPAD";
+					break;
+				default:
+					tmpstr = "";
+					break;
+				}
+
+				// show on screen
+				DrawStringDecal( pos, "Docked on", olc::GREEN);
+				DrawStringDecal( pos + olc::vf2d{ 11.0f*8, 0.0f }, tmpstr, olc::YELLOW);
+			}
+		}
+
+	}
+
+	void DrawInventory( olc::vf2d pos) {
+		// Show inventory and calculate weight
+		cargo_weight = ShowInventory(pos);
+		ship_weight = ship_net_weight + cargo_weight;
+	}
+
+	void DrawInventoryWeight( olc::vf2d pos) {
+		tmpstr = "Cargo Weight";
+		DrawStringDecal( pos, tmpstr, olc::GREEN);
+		ss.str(""); ss << std::setw(4) << cargo_weight;
+		DrawStringDecal( pos + olc::vf2d{ (8.0f * 8), 8.0f }, ss.str(), olc::RED);
+	}
+
+	void DrawScore( olc::vf2d pos) {
+		tmpstr = "Score";
+		DrawStringDecal( pos , tmpstr, olc::GREEN);
+		ss.str(""); ss << std::setw(5) << int(player_points);
+		DrawStringDecal( pos + olc::vf2d{ 0.0f, 8.0f }, ss.str(), olc::RED);
+	}
 
 	void DrawHUD(bool show) {
 		if (show) {
+			DrawHUDBackground();
 			DrawAltitude(instrument_pos);
 			DrawZVelocity(instrument_pos + olc::vf2d{30.0f, 0.0f}, ship_velocity_z); // *velocity_scale);
 			DrawThrottle(instrument_pos + olc::vf2d{60.0f, 0.0f});
-
-			// Show inventory and calculate weight
-			cargo_weight = ShowInventory(inventory_pos);
-			ship_weight = ship_net_weight + cargo_weight;
-
-			tmpstr = "Cargo Weight";
-			DrawString({ 100,10 }, tmpstr, olc::GREEN);
-			ss.str(""); ss << std::setw(4) << cargo_weight;
-			DrawString({ 100 + 8 * 8, 18 }, ss.str(), olc::RED);
-
-			tmpstr = "Score";
-			DrawString({ 10,10 }, tmpstr, olc::GREEN);
-			ss.str(""); ss << std::setw(5) << int(player_points);
-			DrawString({ 10,18 }, ss.str(), olc::RED);
-
+			DrawDockedSite( docked_pos);
+			DrawInventory( inventory_pos);
+			DrawInventoryWeight( inventory_weight_pos);
+			DrawScore( score_pos);
 		}
 	}
 
@@ -914,7 +965,7 @@ public:
 		if (inventory.size() > 0) {
 			for (j = 0; j < inventory.size(); ++j) {
 				ss.str(""); ss << static_cast<char>(inventory[j].cargoType);
-				DrawString({ 13, 62 + j * offs }, ss.str(), olc::GREEN);
+				DrawStringDecal({ 13.0f, float(62 + j * offs) }, ss.str(), olc::GREEN);
 				inv_weight += (inventory[j].cargoType - 48) * 100;
 			}
 			DrawRectDecal({ float(pos.x), float(pos.y + 8) }, { 80.0f, float(offs * j + 3 ) });
@@ -1176,7 +1227,7 @@ public:
 		SetPixelMode(olc::Pixel::Mode::ALPHA);
 		// olc::Sprite *oldDrawTarget = GetDrawTarget();
 		SetDrawTarget(spr_minimap);
-		Clear(olc::VERY_DARK_GREY);
+		Clear(olc::DARK_BLUE);
 
 		// draw cargos
 		for (int i = 0; i < cargos.size(); ++i) {
@@ -1202,6 +1253,7 @@ public:
 		SetPixelMode(olc::Pixel::Mode::NORMAL);
 	}
 
+	// TODO:  small bar offset bug on these three instruments
 	void DrawAltitude(olc::vf2d pos) {
 		float BarHeight = 100;
 		float BarWidth = 20;
@@ -1209,7 +1261,7 @@ public:
 		float AltBarHeight = altitude / scale;
 
 		DrawRectDecal({ pos.x, pos.y }, { BarWidth, BarHeight });
-		FillRectDecal({ pos.x + 1,(pos.y + 100) - (AltBarHeight - 2) }, { BarWidth - 2, (AltBarHeight - 4) }, olc::RED);
+		FillRectDecal( pos + olc::vf2d{ 1.0f, 100.0f - (AltBarHeight - 2) }, { BarWidth - 2, (AltBarHeight - 4) }, olc::RED);
 
 		tmpstr = "Alt";
 		DrawStringDecal( pos + olc::vf2d{ 0.0f, -10.0f }, tmpstr, olc::GREY);
@@ -1223,7 +1275,7 @@ public:
 		float BarWidth = 20;
 
 		DrawRectDecal( pos, { BarWidth, BarHeight });
-		FillRectDecal( pos + olc::vf2d{ 1.0f, pos.y -100.0f - (BarHeight*ship_avr_throttle - 2) }, { BarWidth - 2, BarHeight*ship_avr_throttle - 4 }, olc::RED);
+		FillRectDecal( pos + olc::vf2d{ 1.0f, 100.0f - (BarHeight*ship_avr_throttle - 2) }, { BarWidth - 2, BarHeight*ship_avr_throttle - 4 }, olc::RED);
 
 		tmpstr = "Thr";
 		DrawStringDecal(pos + olc::vf2d{ 0.0f, -10 }, tmpstr, olc::GREY);
