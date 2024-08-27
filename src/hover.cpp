@@ -55,6 +55,7 @@ public:
 	olc::Sprite* spr_bg_tile = nullptr;	olc::Decal* dec_bg_tile = nullptr;
 	olc::Sprite* spr_ship = nullptr;	olc::Decal* dec_ship = nullptr;
 	olc::Sprite* spr_minimap = nullptr; olc::Decal* dec_minimap = nullptr;
+	olc::Sprite* spr_gui_background = nullptr;	olc::Decal* dec_gui_background = nullptr;
 
 	// *** Ship ***
 	int ship_inventory_capasity = 3;
@@ -259,6 +260,19 @@ public:
 		spr_startpad = new olc::Sprite("./res/img/startpad.png");	dec_startpad = new olc::Decal(spr_startpad);
 		spr_bg_tile = new olc::Sprite("./res/img/bg_tile.png");	dec_bg_tile = new olc::Decal(spr_bg_tile);
 		spr_ship = new olc::Sprite("./res/img/ship.png");	dec_ship = new olc::Decal(spr_ship);
+		spr_gui_background = new olc::Sprite("./res/img/gui_background.png");	dec_gui_background = new olc::Decal(spr_gui_background);
+
+		// DrawDecal(olc::vf2d{ 0.0f, 0.0f }, dec_gui_background, olc::vf2d{ 1.0f, 1.0f });
+		SetDrawTarget(spr_gui_background);
+		// SetPixelMode(olc::Pixel::Mode::ALPHA);
+		FillRect( {150,80}, {640-150-150, 360-80-80}, olc::BLANK);
+		SetDrawTarget(nullptr);
+		// SetPixelMode(olc::Pixel::Mode::NORMAL);
+		dec_gui_background->Update();
+		
+		// chop a hole in the gui background
+		// rect( {150, 80 } , { ScreenWidth()-150, ScreenHeight()-80}
+
 		spr_minimap = new olc::Sprite(minimap_size.x, minimap_size.y); dec_minimap = new olc::Decal(spr_minimap);
 
 		return true;
@@ -746,6 +760,13 @@ public:
 	} // end Update ---
 
 	void DrawHUDBackground() {
+		SetPixelMode(olc::Pixel::Mode::ALPHA);
+		DrawDecal(olc::vf2d{ 0.0f, 0.0f }, dec_gui_background, olc::vf2d{ 1.0f, 1.0f });
+		SetPixelMode(olc::Pixel::Mode::NORMAL);
+
+		// chop a hole in it
+		// rect( {150, 80 } , { ScreenWidth()-150, ScreenHeight()-80}
+		/*
 		// just do some rect fill for now, gfx later
 		olc::Pixel col = olc::Pixel(olc::VERY_DARK_BLUE);
 
@@ -753,6 +774,7 @@ public:
 		FillRectDecal( olc::vf2d{ float(ScreenWidth() - 150.0f), 0.0f }, olc::vf2d{ 150.0f, float(ScreenHeight()) }, col);
 		FillRectDecal( olc::vf2d{ 0.0f, 0.0f }, olc::vf2d{ 150.0f, float(ScreenHeight()) }, col);
 		FillRectDecal( olc::vf2d{ 0.0f, float(ScreenHeight()-80) }, olc::vf2d{ float(ScreenWidth()), 80.0f }, col);
+		*/
 	}
 
 	void DrawDockedSite(olc::vf2d pos) {
@@ -762,22 +784,21 @@ public:
 			if (ship_docket_at_cargoType != 0) {
 				switch (ship_docket_at_cargoType) {
 				case 'd':
-					tmpstr = "DROPZONE";
+					tmpstr = "Docked at DROPZONE";
 					break;
 				case '*':
-					tmpstr = "STARTPAD";
+					tmpstr = "Docked at STARTPAD";
 					break;
 				default:
-					tmpstr = "";
+					tmpstr = "Landed on the ground";
 					break;
 				}
 
 				// show on screen
-				DrawStringDecal( pos, "Docked on", olc::GREEN);
-				DrawStringDecal( pos + olc::vf2d{ 11.0f*8, 0.0f }, tmpstr, olc::YELLOW);
+				// DrawStringDecal( pos, "Docked on", olc::GREEN);
+				DrawStringDecal( pos , tmpstr, olc::YELLOW);
 			}
 		}
-
 	}
 
 	void DrawInventory( olc::vf2d pos) {
