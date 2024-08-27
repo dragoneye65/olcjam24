@@ -472,8 +472,8 @@ public:
 					ship_autolevel_toggle = !ship_autolevel_toggle;
 				}
 
-				if (ship_autolevel_toggle)
-					DrawString({ ScreenWidth() / 2 - 12 * 8 / 2, 25 }, "Autoleveling ON", olc::GREEN);
+				//if (ship_autolevel_toggle)
+				//	DrawStringDecal({ float(ScreenWidth() / 2 - 12 * 8 / 2), 25.0f }, "Autoleveling ON", olc::GREEN);
 
 				// reset the throttle to neutral position
 				if (GetKey(olc::Key::T).bPressed) {
@@ -830,6 +830,10 @@ public:
 			DrawInventory( inventory_pos);
 			DrawInventoryWeight( inventory_weight_pos);
 			DrawScore( score_pos);
+
+			if (ship_autolevel_toggle)
+				DrawStringDecal({ float(ScreenWidth() / 2 - 12 * 8 / 2), 25.0f }, "Autoleveling ON", olc::GREEN);
+
 		}
 	}
 
