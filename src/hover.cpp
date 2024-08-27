@@ -53,6 +53,7 @@ public:
 	olc::Sprite* spr_chest = nullptr;	olc::Decal* dec_chest = nullptr;
 	olc::Sprite* spr_startpad = nullptr;	olc::Decal* dec_startpad = nullptr;
 	olc::Sprite* spr_bg_tile = nullptr;	olc::Decal* dec_bg_tile = nullptr;
+	olc::Sprite* spr_bg_border_tile = nullptr;	olc::Decal* dec_bg_border_tile = nullptr;
 	olc::Sprite* spr_ship = nullptr;	olc::Decal* dec_ship = nullptr;
 	olc::Sprite* spr_minimap = nullptr; olc::Decal* dec_minimap = nullptr;
 	olc::Sprite* spr_gui_background = nullptr;	olc::Decal* dec_gui_background = nullptr;
@@ -215,26 +216,26 @@ public:
 		// 0-9: cargo type,
 		//	  0: no weight
 		//  1-9: the higher the number the more it weighth 
-		game_map = "9              9";
-		game_map += "     0   0      ";
-		game_map += "                ";
-		game_map += "     0   0      ";
-		game_map += "  5         3   " ;
-		game_map += "                ";
-		game_map += "  5         3   ";
-		game_map += "       2        " ;
-		game_map += "                ";
-		game_map += "   d  2*2  1    ";
-		game_map += "                ";
-		game_map += "       2        ";
-		game_map += "                ";
-		game_map += "                ";
-		game_map += "    0    6      ";
-		game_map += "                ";
-		game_map += "     2      8   ";
-		game_map += "                ";
-		game_map += "                ";
-		game_map += "9      3       9";
+		game_map  = "bbbbbbbbbbbbbbbb";
+		game_map += "b9   0   0    9b";
+		game_map += "b              b";
+		game_map += "b    0   0     b";
+		game_map += "b 5         3  b";
+		game_map += "b              b";
+		game_map += "b 5         3  b";
+		game_map += "b      2       b";
+		game_map += "b              b";
+		game_map += "b  d  2*2  1   b";
+		game_map += "b              b";
+		game_map += "b      2       b";
+		game_map += "b              b";
+		game_map += "b              b";
+		game_map += "b   0    6     b";
+		game_map += "b              b";
+		game_map += "b    2      8  b";
+		game_map += "b              b";
+		game_map += "b9            9b";
+		game_map += "bbbbbbbbbbbbbbbb";
 
 		ship_on_screen_pos = { ScreenWidth() / 2,ScreenHeight() / 2 };
 		minimap_position = { ScreenWidth() - minimap_size.x - 2, 10 };
@@ -259,19 +260,15 @@ public:
 		spr_chest = new olc::Sprite("./res/img/chest.png");	dec_chest = new olc::Decal(spr_chest);
 		spr_startpad = new olc::Sprite("./res/img/startpad.png");	dec_startpad = new olc::Decal(spr_startpad);
 		spr_bg_tile = new olc::Sprite("./res/img/bg_tile.png");	dec_bg_tile = new olc::Decal(spr_bg_tile);
+		spr_bg_border_tile = new olc::Sprite("./res/img/bg_border_tile.png");	dec_bg_border_tile = new olc::Decal(spr_bg_border_tile);
 		spr_ship = new olc::Sprite("./res/img/ship.png");	dec_ship = new olc::Decal(spr_ship);
 		spr_gui_background = new olc::Sprite("./res/img/gui_background.png");	dec_gui_background = new olc::Decal(spr_gui_background);
 
-		// DrawDecal(olc::vf2d{ 0.0f, 0.0f }, dec_gui_background, olc::vf2d{ 1.0f, 1.0f });
+		// chop a hole in the gui background
 		SetDrawTarget(spr_gui_background);
-		// SetPixelMode(olc::Pixel::Mode::ALPHA);
 		FillRect( {150,80}, {640-150-150, 360-80-80}, olc::BLANK);
 		SetDrawTarget(nullptr);
-		// SetPixelMode(olc::Pixel::Mode::NORMAL);
 		dec_gui_background->Update();
-		
-		// chop a hole in the gui background
-		// rect( {150, 80 } , { ScreenWidth()-150, ScreenHeight()-80}
 
 		spr_minimap = new olc::Sprite(minimap_size.x, minimap_size.y); dec_minimap = new olc::Decal(spr_minimap);
 
@@ -1083,9 +1080,20 @@ public:
 			// clip rect
 			if ((cargos[i].pos.x - ship_pos.x) > clip_rectangle.tl.x && (cargos[i].pos.x - ship_pos.x) < clip_rectangle.br.x 
 				&& (cargos[i].pos.y - ship_pos.y) > clip_rectangle.tl.y && (cargos[i].pos.y - ship_pos.y) < clip_rectangle.br.y) {
+
 				center_x = cx - (spr_bg_tile->width * bg_tile_scale_x) / 2;
 				center_y = cy - (spr_bg_tile->height * bg_tile_scale_y) / 2;
-				DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
+				switch (cargos[i].cargoType)
+				{
+				case 'b':
+					DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_border_tile, olc::vf2d{ 1.0f, 1.0f });
+					std::cout << "blitting bg_border_tile\n";
+					break;
+				case ' ':
+				default:
+					DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
+					break;
+				}
 			}
 
 
@@ -1098,6 +1106,9 @@ public:
 
 			switch (cargos[i].cargoType)
 			{
+			case 'b':
+				col = olc::WHITE;
+				break;
 			case 'd':
 				col = olc::RED;
 				break;
@@ -1130,6 +1141,8 @@ public:
 					break;
 				case ' ':
 					break;
+//				case 'b':	// border tile
+//					break;
 				default:
 					// Draw the orb
 					dec_scale = 0.1f;
