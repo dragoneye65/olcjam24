@@ -104,8 +104,6 @@ public:
 	enum state game_state = state::INTRO;
 	float game_object_proximity_limit = 10.0f;
 	float game_clip_objects_radius = 120.0f;
-	// olc::vf2d game_clip_objects_xy1 = {  50.0f,  50.0f };
-	// olc::vf2d game_clip_objects_xy2 = { 480.0f, 320.0f };
 	bool game_toggle_intro = false;
 	float gravity = 0.2f;
 	float altitude = 0.0f;									// 0m  sea level
@@ -965,17 +963,9 @@ public:
 			// don't draw the object if it is outside the clip radius
 			// Radius
 			if (sqrt((ship_pos.x - cargos[i].pos.x) * (ship_pos.x - cargos[i].pos.x) + (ship_pos.y - cargos[i].pos.y) * (ship_pos.y - cargos[i].pos.y)) < game_clip_objects_radius) {
-					// dec_scale = 0.25f;
-					// dec_scaley = dec_scale/(ScreenWidth()/ ScreenHeight());
-				dec_scale =0.244f;
-				//dec_scaley = 0.39f;
-				dec_scaley = 0.82465f;
-					center_x = cx - (spr_bg_tile->width * bg_tile_scale_x)/2 ;
-					center_y = cy - (spr_bg_tile->height * bg_tile_scale_y)/2 ;
-					// center_x = cx - ((spr_bg_tile->width+ spr_bg_tile->width/2) * dec_scale)/2 ;
-					// center_y = cy - ((spr_bg_tile->height- spr_bg_tile->height/2) * dec_scaley)/2 ;
-					// DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ dec_scale,dec_scaley });
-					DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
+				center_x = cx - (spr_bg_tile->width * bg_tile_scale_x)/2 ;
+				center_y = cy - (spr_bg_tile->height * bg_tile_scale_y)/2 ;
+				DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
 			}
 		}
 
