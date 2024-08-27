@@ -5,6 +5,8 @@ Date: 26 August 2024 13:19
 Parent: dffe32ba
 Tag: olcJam24-NO-NEW-BUGS-PLEASE
 
+TODO
+- Drop orbs from inventory
 - Function to random generate maps
 - Improve mouse support
 - inventory on ship as gfx must be sentered and offset correctly scaled

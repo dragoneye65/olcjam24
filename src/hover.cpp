@@ -1047,7 +1047,7 @@ public:
 		case '7':
 		case '8':
 		case '9':
-			player_points += cargoType * 23 * inventory.size();
+			player_points += cargoType * 23 * int(inventory.size());
 			player_deliveries++;
 			break;
 
