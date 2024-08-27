@@ -950,16 +950,13 @@ public:
 		float bg_tile_scale_x =  bg_tiles_in_x / dec_bg_tile->sprite->width;
 		float bg_tile_scale_y = bg_tiles_in_y / dec_bg_tile->sprite->height;
 
+		float center_y;
+		float center_x;
+
 		// draw background first
 		for (int i = 0; i < cargos.size(); ++i) {
 			cx = (cargos[i].pos.x - ship_pos.x + ship_on_screen_pos.x);
 			cy = (cargos[i].pos.y - ship_pos.y + ship_on_screen_pos.y);
-
-			float dec_scale;
-			float dec_scaley;
-
-			float center_y;
-			float center_x;
 			// don't draw the object if it is outside the clip radius
 			// Radius
 			if (sqrt((ship_pos.x - cargos[i].pos.x) * (ship_pos.x - cargos[i].pos.x) + (ship_pos.y - cargos[i].pos.y) * (ship_pos.y - cargos[i].pos.y)) < game_clip_objects_radius) {
