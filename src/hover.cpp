@@ -53,6 +53,7 @@ public:
 	olc::Sprite* spr_chest = nullptr;	olc::Decal* dec_chest = nullptr;
 	olc::Sprite* spr_startpad = nullptr;	olc::Decal* dec_startpad = nullptr;
 	olc::Sprite* spr_bg_tile = nullptr;	olc::Decal* dec_bg_tile = nullptr;
+	olc::Sprite* spr_bg_border_tile = nullptr;	olc::Decal* dec_bg_border_tile = nullptr;
 	olc::Sprite* spr_ship = nullptr;	olc::Decal* dec_ship = nullptr;
 	olc::Sprite* spr_minimap = nullptr; olc::Decal* dec_minimap = nullptr;
 	olc::Sprite* spr_gui_background = nullptr;	olc::Decal* dec_gui_background = nullptr;
@@ -180,7 +181,10 @@ public:
 					dropzone = { float(x * sx),float(y * sy) };
 					cargos.push_back({ dropzone,ch });
 					break;
-				case ' ':
+				case ' ': // smth, bg_tile is drawn
+					cargos.push_back({ {float(x) * sx,float(y) * sy},ch });
+					break;
+				case 'o':	// border tile
 					cargos.push_back({ {float(x) * sx,float(y) * sy},ch });
 					break;
 				default:
@@ -215,26 +219,26 @@ public:
 		// 0-9: cargo type,
 		//	  0: no weight
 		//  1-9: the higher the number the more it weighth 
-		game_map = "9              9";
-		game_map += "     0   0      ";
-		game_map += "                ";
-		game_map += "     0   0      ";
-		game_map += "  5         3   " ;
-		game_map += "                ";
-		game_map += "  5         3   ";
-		game_map += "       2        " ;
-		game_map += "                ";
-		game_map += "   d  2*2  1    ";
-		game_map += "                ";
-		game_map += "       2        ";
-		game_map += "                ";
-		game_map += "                ";
-		game_map += "    0    6      ";
-		game_map += "                ";
-		game_map += "     2      8   ";
-		game_map += "                ";
-		game_map += "                ";
-		game_map += "9      3       9";
+		game_map =  "oooooooooooooooo";
+		game_map += "o9   0   0    9o";
+		game_map += "o              o";
+		game_map += "o    0   0     o";
+		game_map += "o 5         3  o";
+		game_map += "o              o";
+		game_map += "o 5         3  o";
+		game_map += "o      2       o";
+		game_map += "o              o";
+		game_map += "o  d  2*2  1   o";
+		game_map += "o              o";
+		game_map += "o      2       o";
+		game_map += "o              o";
+		game_map += "o              o";
+		game_map += "o   0    6     o";
+		game_map += "o              o";
+		game_map += "o    2      8  o";
+		game_map += "o              o";
+		game_map += "o9            9o";
+		game_map += "oooooooooooooooo";
 
 		ship_on_screen_pos = { ScreenWidth() / 2,ScreenHeight() / 2 };
 		minimap_position = { ScreenWidth() - minimap_size.x - 2, 10 };
@@ -259,19 +263,15 @@ public:
 		spr_chest = new olc::Sprite("./res/img/chest.png");	dec_chest = new olc::Decal(spr_chest);
 		spr_startpad = new olc::Sprite("./res/img/startpad.png");	dec_startpad = new olc::Decal(spr_startpad);
 		spr_bg_tile = new olc::Sprite("./res/img/bg_tile.png");	dec_bg_tile = new olc::Decal(spr_bg_tile);
+		spr_bg_border_tile = new olc::Sprite("./res/img/bg_border_tile.png");	dec_bg_border_tile = new olc::Decal(spr_bg_border_tile);
 		spr_ship = new olc::Sprite("./res/img/ship.png");	dec_ship = new olc::Decal(spr_ship);
 		spr_gui_background = new olc::Sprite("./res/img/gui_background.png");	dec_gui_background = new olc::Decal(spr_gui_background);
 
-		// DrawDecal(olc::vf2d{ 0.0f, 0.0f }, dec_gui_background, olc::vf2d{ 1.0f, 1.0f });
+		// chop a hole in the gui background
 		SetDrawTarget(spr_gui_background);
-		// SetPixelMode(olc::Pixel::Mode::ALPHA);
 		FillRect( {150,80}, {640-150-150, 360-80-80}, olc::BLANK);
 		SetDrawTarget(nullptr);
-		// SetPixelMode(olc::Pixel::Mode::NORMAL);
 		dec_gui_background->Update();
-		
-		// chop a hole in the gui background
-		// rect( {150, 80 } , { ScreenWidth()-150, ScreenHeight()-80}
 
 		spr_minimap = new olc::Sprite(minimap_size.x, minimap_size.y); dec_minimap = new olc::Decal(spr_minimap);
 
@@ -551,10 +551,19 @@ public:
 				ship_pos.y += fElapsedTime * gameSpeed / 4 * ship_velocity_y;
 
 				// limit the ship inside the map area , bounch back
-				if (ship_pos.x <        0.0f) { ship_pos.x =        0.0f; ship_velocity_x *= -1.0f; }
-				if (ship_pos.x > world_max.x) { ship_pos.x = world_max.x; ship_velocity_x *= -1.0f; }
-				if (ship_pos.y <        0.0f) { ship_pos.y =        0.0f; ship_velocity_y *= -1.0f; }
-				if (ship_pos.y > world_max.y) { ship_pos.y = world_max.y; ship_velocity_y *= -1.0f; }
+				float shipworldendx = (world_max.x / 16) * 14;
+				float shipworldendy = (world_max.y / 10) *  9;
+				float shipworldstartx = (world_max.x / 16);
+				float shipworldstarty = (world_max.y / 10)/2;
+				if (ship_pos.x <= shipworldstartx) { ship_pos.x = shipworldstartx; ship_velocity_x *= -0.5f; }
+				if (ship_pos.x >= shipworldendx) { ship_pos.x = shipworldendx; ship_velocity_x *= -0.5f; }
+				if (ship_pos.y <= shipworldstarty) { ship_pos.y = shipworldstarty; ship_velocity_y *= -0.5f; }
+				if (ship_pos.y >= shipworldendy) { ship_pos.y = shipworldendy; ship_velocity_y *= -0.5f; }
+
+				//if (ship_pos.x <        0.0f) { ship_pos.x =        0.0f; ship_velocity_x *= -1.0f; }
+				//if (ship_pos.x >= world_max.x) { ship_pos.x = world_max.x; ship_velocity_x *= -1.0f; }
+				//if (ship_pos.y <        0.0f) { ship_pos.y =        0.0f; ship_velocity_y *= -1.0f; }
+				//if (ship_pos.y >= world_max.y) { ship_pos.y = world_max.y; ship_velocity_y *= -1.0f; }
 
 				if (altitude < 0.0f) {
 					altitude = 0.0f;
@@ -1083,12 +1092,20 @@ public:
 			// clip rect
 			if ((cargos[i].pos.x - ship_pos.x) > clip_rectangle.tl.x && (cargos[i].pos.x - ship_pos.x) < clip_rectangle.br.x 
 				&& (cargos[i].pos.y - ship_pos.y) > clip_rectangle.tl.y && (cargos[i].pos.y - ship_pos.y) < clip_rectangle.br.y) {
+
 				center_x = cx - (spr_bg_tile->width * bg_tile_scale_x) / 2;
 				center_y = cy - (spr_bg_tile->height * bg_tile_scale_y) / 2;
-				DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
+				switch (cargos[i].cargoType)
+				{
+				case 'o':
+					DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_border_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
+					break;
+				case ' ':
+				default:
+					DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
+					break;
+				}
 			}
-
-
 		}
 
 		// then draw the objects on top
@@ -1098,6 +1115,9 @@ public:
 
 			switch (cargos[i].cargoType)
 			{
+			case 'o':
+				col = olc::WHITE;
+				break;
 			case 'd':
 				col = olc::RED;
 				break;
@@ -1111,9 +1131,10 @@ public:
 
 			float center_y;
 			float center_x;
+			bool draw_id_on_object = false;
 			// don't draw the object if it is outside the clip radius
 			if (sqrt((ship_pos.x - cargos[i].pos.x) * (ship_pos.x - cargos[i].pos.x) + (ship_pos.y - cargos[i].pos.y) * (ship_pos.y - cargos[i].pos.y)) < game_clip_objects_radius) {
-
+				draw_id_on_object = false;
 				switch (cargos[i].cargoType)
 				{
 				case '*':
@@ -1130,16 +1151,19 @@ public:
 					break;
 				case ' ':
 					break;
+				case 'o':	// border tile
+					break;
 				default:
 					// Draw the orb
 					dec_scale = 0.1f;
 					center_x = cx - (spr_orb->width * dec_scale) / 2;
 					center_y = cy - (spr_orb->height * dec_scale) / 2;
 					DrawDecal(olc::vf2d{ center_x, center_y }, dec_orb, olc::vf2d{ dec_scale,dec_scale });
+					draw_id_on_object = true;
 					break;
 				}
 
-				if (cargos[i].cargoType != ' ') {
+				if ( draw_id_on_object) {
 					ss.str(""); ss << std::setw(1) << static_cast<char>(cargos[i].cargoType);
 					DrawStringDecal({ cx - 3.0f,cy - 3.0f }, ss.str());
 					DrawStringDecal({ float(int(cx) - 3),float(int(cy) - 3 )}, ss.str());
@@ -1248,12 +1272,29 @@ public:
 			if (cargos[i].cargoType != ' ') {
 				// TODO: calculate what size we need regarding the size of map versus size of minimap on screen
 				// Draw({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, olc::GREEN);
-				FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::GREEN);
+				switch (char(cargos[i].cargoType)) {
+				case 'o':
+					FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::WHITE);
+					break;
+				case 'd':
+					// draw dropzone
+					// FillCircle({ mm_pos.x + int(dropzone.x * scale_x), mm_pos.y + int(dropzone.y * scale_y) }, 1, olc::RED);
+					FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::RED);
+					break;
+				case '*':
+					// draw startpad
+					// FillCircle({ mm_pos.x + int(dropzone.x * scale_x), mm_pos.y + int(dropzone.y * scale_y) }, 1, olc::YELLOW);
+					FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::YELLOW);
+					break;
+				case ' ':
+					break;
+				default:
+					FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::GREEN);
+					break;
+				}
 			}
 		}
 
-		// draw dropzone
-		FillCircle({ mm_pos.x + int(dropzone.x * scale_x), mm_pos.y + int(dropzone.y * scale_y) }, 1, olc::RED);
 
 		// draw ship
 		DrawCircle({ mm_pos.x + int((ship_pos.x) * scale_x), mm_pos.y + int((ship_pos.y) * scale_y) }, 2, olc::RED);

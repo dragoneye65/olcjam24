@@ -5,12 +5,14 @@ Date: 26 August 2024 13:19
 Parent: dffe32ba
 Tag: olcJam24-NO-NEW-BUGS-PLEASE
 
-
-
-- Better mouse support
-- Alignment of the map in x2,y2 and the ship is extending flight past the map 
-- Show the orbs as gfx in inventory
-- Show the inventory on ship as gfx
+- Add a multiplyer to points when picking up more orbs
+- Improve mouse support
+- inventory on ship as gfx must be sentered and offset correctly scaled
 - Fix the ships throttle
 	- Trottle should stay the same when tilting/yawing
 
+Commit comment
+Added border function to map
+Ship is now aligned to fly inside the map 
+Halved the bunch back from maps edges
+ 
