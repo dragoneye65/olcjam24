@@ -558,8 +558,8 @@ public:
 				ship_pos.y += fElapsedTime * gameSpeed / 4 * ship_velocity_y;
 
 				// limit the ship inside the map area , bounch back halves the velocity
-				float shipworldendx = (world_max.x / charmap_dim.x) * charmap_dim.x-2;
-				float shipworldendy = (world_max.y / charmap_dim.y) * charmap_dim.y - 2;
+				float shipworldendx = (world_max.x / charmap_dim.x) * (charmap_dim.x-2);
+				float shipworldendy = (world_max.y / charmap_dim.y) * (charmap_dim.y -2 );
 				float shipworldstartx = (world_max.x / charmap_dim.x);
 				float shipworldstarty = (world_max.y / charmap_dim.y);
 				if (ship_pos.x <= shipworldstartx) { ship_pos.x = shipworldstartx; ship_velocity_x *= -0.5f; }
@@ -1415,7 +1415,7 @@ int main()
 	Game hover;
 
 	// 640x360 with no full screen and sync to monitor refresh rate
-	if (hover.Construct(640, 360, 2, 2, false,true)) 
+	if (hover.Construct(640, 360, 2, 2, true,false)) 
 		hover.Start();
 
 	return 0;
