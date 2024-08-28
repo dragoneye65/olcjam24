@@ -14,10 +14,10 @@ TODO
 - ship to map alignment is out of wack again
 - added bonus points for more orbs in inventory should be weight not count of items
 - state where it counts the inventory one by one with gfx on drop
+- clamp fEpilapseTime!  Tnx moros
+
 
 Current work
-- Add fog of war
-- Ned an game world to game_map index converter gm_world_to_map_inx
 
 
 Commit comment
