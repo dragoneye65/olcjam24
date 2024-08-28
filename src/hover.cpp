@@ -1440,10 +1440,10 @@ public:
 
 		// draw cargos
 		for (int i = 0; i < cargos.size(); ++i) {
-			if (cargos[i].cargoType != ' ') {
+			olc::vi2d mc = WorldToMapCoord(cargos[i].pos);
+			if (game_map_fow[mc.y * charmap_dim.x + mc.x] != '.') {
+				if (cargos[i].cargoType != ' ') {
 
-				olc::vi2d mc = WorldToMapCoord(cargos[i].pos);
-				if (game_map_fow[mc.y * charmap_dim.x + mc.x] != '.') {
 
 					switch (char(cargos[i].cargoType)) {
 					case 'o':
@@ -1463,7 +1463,11 @@ public:
 						FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::GREEN);
 						break;
 					}
-				}
+			}
+			}
+			else {  // fog it up
+				FillRect({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) },
+					olc::vf2d{ 7.0f, 5.0f }, olc::VERY_DARK_BLUE);
 			}
 		}
 

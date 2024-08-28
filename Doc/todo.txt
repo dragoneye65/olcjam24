@@ -8,16 +8,25 @@ Tag: olcJam24-NO-NEW-BUGS-PLEASE
 TODO
 - Function to random generate maps
 - Improve mouse support
-	Slow mouse movements give slow input and virsa versa...
 - inventory on ship as gfx must be sentered and offset correctly scaled
 - Trottle should stay the same when tilting/yawing
-- ship to map alignment is out of wack again
 - added bonus points for more orbs in inventory should be weight not count of items
-- state where it counts the inventory one by one with gfx on drop
+- make a state where it counts the inventory one by one with gfx on drop
 - clamp fEpilapseTime!  Tnx moros
-
+- fix ship sound
+- Different object to pick up on map
+- missions to find and reveil tasks
+- change drone to bounch back from map boundaries and not fixed size from max world coord, ie if there is walls in the middle
+- auto altitude hold
+- more aggressive turns and less agressive gravity
+- make ship art
+- ship get stuck in altitude and will not down, could be some increase in altitude not shown, happens when standng on edge of world
+- Instrument bar's indicators is missaligned, offset  at the bottom
+- Make the intro, endgame and crash screens more appeling for the eyes
+- Freetype font support.
 
 Current work
+
 
 
 Commit comment
