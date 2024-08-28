@@ -102,6 +102,8 @@ public:
 	// *** Game ***
 	// first char based game map, don't need it, can generate it
 	std::string game_map;
+	std::string game_map_fow;
+	olc::vi2d gm_world_to_map_inx = { };
 	olc::vi2d charmap_dim = { 16, 20 };
 	olc::vi2d instructions_pos = { 50, 50 };
 	float game_critical_landing_velocity = -150.0f;
@@ -119,7 +121,7 @@ public:
 	olc::vf2d world_max = { 1000.0f,1000.0f }; // *16.0f / 9.0f };
 	olc::vf2d startpos;			// start position on the map
 	olc::vf2d dropzone;  		// dropzone position on the map
-	std::vector<cargo> cargos;	// yea you guessed it
+	std::vector<cargo> cargos;	// yea you guessed it! Or not, TODO: this is actually the content of the map :insane_face:
 	bool cargo_no_pickup = false;
 	bool mouse_control_toggle = false;
 	bool hud_toggle = true;
@@ -194,6 +196,10 @@ public:
 
 						cargos.push_back({ {float(x) * sx,float(y) * sy},ch });
 					}
+					else {
+						std::cout << "Terrible things happens in initGameMap\n";
+						exit(1);
+					}
 					break;
 				}
 			}
@@ -241,6 +247,29 @@ public:
 		game_map += "o              o";
 		game_map += "o9            9o";
 		game_map += "oooooooooooooooo";
+
+		game_map_fow  = "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+		game_map_fow += "................";
+
+
 
 		ship_on_screen_pos = { ScreenWidth() / 2,ScreenHeight() / 2 };
 		docked_pos = { float(ScreenWidth() / 2 - 70), 36.0f };
@@ -597,9 +626,9 @@ public:
 
 			// Dont draw anything while showing the intro screen
 			if (!game_toggle_intro) {
-				DrawGameMapOnScreen(ship_pos);  // TODO: Add shadow of war
+				DrawGameMapOnScreen(ship_pos);  // TODO: Add fog war
 				DrawHUD(hud_toggle);
-				DrawMinimap(minimap_position, ship_pos);
+				DrawMinimap(minimap_position, ship_pos); // TODO: Add fog of war
 				DrawInventoryOnShip();
 				DrawShip();
 				DrawMouseCursor(mouse_control_toggle);
@@ -926,7 +955,7 @@ public:
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "         A,D,W,S Roll/Pitch     UP,DOWN Throttle           ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "         SPACE Autoleveling     P Purge from inventory     ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "         F1 This page           M Music                    ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "         J jettison/drop orb    SHIFT-M Mouse toggle       ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                         Credits                           ", olc::DARK_YELLOW);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "             Javidx9 for his olcPixelGameEngine,           ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "          Moros1138 for his olcPGEX_MiniAudio wrapper,     ", olc::DARK_GREEN);
@@ -1076,20 +1105,16 @@ public:
 		}
 	}
 
+
 	bool DropInventoryItemOnToMap( int item_to_drop) {
 		int cargoType = 0;
-		// Anything here?
 		for (int i = 0; i < cargos.size(); ++i) {
 			if (fabs(ship_pos.x - cargos[i].pos.x) < game_object_proximity_limit+20) {
 				if (fabs(ship_pos.y - cargos[i].pos.y) < game_object_proximity_limit+20) {
-					// yay, something her
-					cargoType = cargos[i].cargoType;   // return docked at cargoType 
+					cargoType = cargos[i].cargoType;   // return cargoType at location
 
-					// there nothing here then we can drop
+					// if there nothing here then we can drop
 					if ( cargos[i].cargoType == ' ') {
-						// inventory.push_back(cargos[i]);
-						// sound_pickup_play = true;
-						// cargos.erase(cargos.begin() + i);  // off the map with it
 						cargos[i].cargoType = item_to_drop;	// put the dropped item here
 						return true;	// inventory dropped
 					}
@@ -1349,9 +1374,20 @@ public:
 
 		// draw cargos
 		for (int i = 0; i < cargos.size(); ++i) {
+			// get position in game_map_fow
+			// mm_pos.x + int((ship_pos.x) * scale_x)
+			//float gm_fow_x = int(world_max.x / (cargos[i].pos.x+1));
+			//float gm_fow_y = int(world_max.y / (cargos[i].pos.y+1));
+
+			//if (game_map_fow[gm_fow_y * gm_fow_x + gm_fow_x] == '.') {
+			//	FillRect({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, { 10, 10 }, olc::RED);
+			//}
+			//else
 			if (cargos[i].cargoType != ' ') {
 				// TODO: calculate what size we need regarding the size of map versus size of minimap on screen
 				// Draw({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, olc::GREEN);
+
+
 				switch (char(cargos[i].cargoType)) {
 				case 'o':
 					FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::WHITE);

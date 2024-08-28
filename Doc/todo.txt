@@ -8,11 +8,17 @@ Tag: olcJam24-NO-NEW-BUGS-PLEASE
 TODO
 - Function to random generate maps
 - Improve mouse support
+	Slow mouse movements give slow input and virsa versa...
 - inventory on ship as gfx must be sentered and offset correctly scaled
 - Trottle should stay the same when tilting/yawing
 - ship to map alignment is out of wack again
-- Add shadow of war
 - added bonus points for more orbs in inventory should be weight not count of items
+- state where it counts the inventory one by one with gfx on drop
+
+Current work
+- Add fog of war
+- Ned an game world to game_map index converter gm_world_to_map_inx
+
 
 Commit comment
 
