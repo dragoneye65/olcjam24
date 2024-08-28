@@ -597,7 +597,7 @@ public:
 
 			// Dont draw anything while showing the intro screen
 			if (!game_toggle_intro) {
-				DrawGameMapOnScreen(ship_pos);
+				DrawGameMapOnScreen(ship_pos);  // TODO: Add shadow of war
 				DrawHUD(hud_toggle);
 				DrawMinimap(minimap_position, ship_pos);
 				DrawInventoryOnShip();
@@ -664,6 +664,12 @@ public:
 					inventory.erase(inventory.end() - 1);
 					sound_purge_play = true;
 				}
+			}
+
+			// drop/jettison item back into map if position is free
+			if (GetKey(olc::Key::J).bPressed) {
+				if( DropLastItemToMap())  // dropped then play wav if not, do nothing
+					sound_purge_play = true;
 			}
 
 			// must start the sounds again if they are finished playing
@@ -769,6 +775,20 @@ public:
 
 		return true;
 	} // end Update ---
+
+
+	bool DropLastItemToMap() {
+		if (inventory.size() > 0) {
+			if (DropInventoryItemOnToMap(inventory[inventory.size() - 1].cargoType)) {
+				inventory.erase(inventory.end() - 1);
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		return false;
+	}
 
 	void DrawHUDBackground() {
 		SetPixelMode(olc::Pixel::Mode::ALPHA);
@@ -1055,6 +1075,33 @@ public:
 			break;
 		}
 	}
+
+	bool DropInventoryItemOnToMap( int item_to_drop) {
+		int cargoType = 0;
+		// Anything here?
+		for (int i = 0; i < cargos.size(); ++i) {
+			if (fabs(ship_pos.x - cargos[i].pos.x) < game_object_proximity_limit+20) {
+				if (fabs(ship_pos.y - cargos[i].pos.y) < game_object_proximity_limit+20) {
+					// yay, something her
+					cargoType = cargos[i].cargoType;   // return docked at cargoType 
+
+					// there nothing here then we can drop
+					if ( cargos[i].cargoType == ' ') {
+						// inventory.push_back(cargos[i]);
+						// sound_pickup_play = true;
+						// cargos.erase(cargos.begin() + i);  // off the map with it
+						cargos[i].cargoType = item_to_drop;	// put the dropped item here
+						return true;	// inventory dropped
+					}
+					else {
+						return false;	// the location is occopied
+					}
+				}
+			}
+		}
+		return false;
+	}
+
 
 	int CheckDropPickupOnLanding() {
 		int cargoType = 0;
@@ -1415,7 +1462,7 @@ int main()
 	Game hover;
 
 	// 640x360 with no full screen and sync to monitor refresh rate
-	if (hover.Construct(640, 360, 2, 2, true,false)) 
+	if (hover.Construct(640, 360, 2, 2, false,false)) 
 		hover.Start();
 
 	return 0;

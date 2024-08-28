@@ -6,12 +6,13 @@ Parent: dffe32ba
 Tag: olcJam24-NO-NEW-BUGS-PLEASE
 
 TODO
-- Drop orbs from inventory
 - Function to random generate maps
 - Improve mouse support
 - inventory on ship as gfx must be sentered and offset correctly scaled
 - Trottle should stay the same when tilting/yawing
-- Align the ui items
+- ship to map alignment is out of wack again
+- Add shadow of war
+- added bonus points for more orbs in inventory should be weight not count of items
 
 Commit comment
 
