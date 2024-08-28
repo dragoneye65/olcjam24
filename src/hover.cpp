@@ -132,7 +132,8 @@ public:
 	olc::vf2d docked_pos = { 0.0f ,0.0f };				// initialized in oncreate 
 	olc::vf2d inventory_weight_pos = { 100.0f, 10.0f };
 	olc::vf2d score_pos{ 10.0f,10.0f };
-	
+	bool msg_box_toggle = false;
+
 	// docked at string pos = -
 
 	// need some temperary stuff
@@ -168,6 +169,10 @@ public:
 		// wipe inventory
 		inventory.clear();
 		cargos.clear();
+
+		ResetFOWMap();
+		altitude = 0.0f;
+		throttle1 = throttle2 = throttle3 = throttle4 = 0.0f;
 
 		// scan the rows
 		char ch;
@@ -248,27 +253,26 @@ public:
 		game_map += "o9            9o";
 		game_map += "oooooooooooooooo";
 
-		game_map_fow  = "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-		game_map_fow += "................";
-
+		game_map_fow  = "                ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += "                ";
 
 
 		ship_on_screen_pos = { ScreenWidth() / 2,ScreenHeight() / 2 };
@@ -319,6 +323,12 @@ public:
 			timer_toggle_on_state = !timer_toggle_on_state;
 			lastToggleTime = std::chrono::steady_clock::now();
 		}
+	}
+
+
+	void UpdatePhysics() {
+
+
 	}
 
 
@@ -626,12 +636,27 @@ public:
 
 			// Dont draw anything while showing the intro screen
 			if (!game_toggle_intro) {
+				// open up the fow in a circle around the player
+				UpdatePhysics();
+				olc::vi2d mc = WorldToMapCoord(ship_pos);
+				MakeFOWMapVisibleToPlayer( mc);
+
 				DrawGameMapOnScreen(ship_pos);  // TODO: Add fog war
 				DrawHUD(hud_toggle);
 				DrawMinimap(minimap_position, ship_pos); // TODO: Add fog of war
 				DrawInventoryOnShip();
 				DrawShip();
+				olc::vi2d tmpinx = WorldToMapCoord(ship_pos);
+
+				// TODO: just a test, delete when the fun is over
+				if (msg_box_toggle) {
+					ss.str(""); ss << "Yo! its me again remember? yo you there?";
+					MsgBox({ 100.0f, 110.0f }, ss.str());
+				}
+
 				DrawMouseCursor(mouse_control_toggle);
+
+
 			}
 			else
 				Instructions(instructions_pos + olc::vi2d{ 30,50 });
@@ -721,6 +746,9 @@ public:
 			if (GetKey(olc::Key::M).bPressed) {
 				mouse_control_toggle = !mouse_control_toggle;
 			}
+			if (GetKey(olc::Key::P).bPressed) {
+				msg_box_toggle = !msg_box_toggle;
+			}
 		}
 		else {
 			// Toggle background music
@@ -754,8 +782,10 @@ public:
 			throttle3 = 0.0f;
 			throttle4 = 0.0f;
 
+
 			Instructions(instructions_pos);
 			if (GetKey(olc::Key::ENTER).bPressed || GetKey(olc::Key::SPACE).bPressed) {
+				InitGameMap();
 				game_state = state::GAMEON;
 				ma_engine.Toggle(sound_ship_id, true);
 				if ( sound_music_toggle)
@@ -804,6 +834,22 @@ public:
 
 		return true;
 	} // end Update ---
+
+
+	// convert world coordinates to map coordinates.
+	olc::vi2d WorldToMapCoord( olc::vf2d ship_pos) {
+		olc::vf2d scale;
+		scale.x = charmap_dim.x / world_max.x;
+		scale.y = charmap_dim.y / world_max.y;
+
+		gm_world_to_map_inx.x = int(ship_pos.x * scale.x);
+		gm_world_to_map_inx.y = int(ship_pos.y * scale.y);
+
+		// ss.str(""); ss << std::setw(3) << gm_world_to_map_inx.x << ", " << gm_world_to_map_inx.y;
+		// DrawStringDecal({ 320.0f, 320.0f }, ss.str());
+
+		return gm_world_to_map_inx;
+	}
 
 
 	bool DropLastItemToMap() {
@@ -931,6 +977,25 @@ public:
 		InitGameMap();
 		ship_pos = startpos;
 	}
+
+	void MsgBox(olc::vf2d pos, std::string msg) {
+		int newline_count = int(std::count(msg.begin(), msg.end(), '\n'));
+
+		if (newline_count == 0) newline_count = 1;
+
+		FillRectDecal(
+			pos + olc::vf2d{ 0.0f, 0.0f}, 
+			olc::vf2d{ 350.0f, 20.0f + newline_count * 8.0f },
+			olc::DARK_RED);
+
+		DrawStringDecal(pos + olc::vf2d{ 10.0f,10.0f}, msg, olc::WHITE);
+
+		DrawRectDecal(
+			pos + olc::vf2d{ 0.0f, 0.0f }, 
+			olc::vf2d{ 350.0f, 20.0f + newline_count * 8.0f }, 
+			olc::WHITE);
+	}
+
 
 	void Instructions(olc::vi2d pos) {
 		int offsy = 10; int yc = 0;
@@ -1082,6 +1147,9 @@ public:
 		return inv_weight;	// return the weight of inventory
 	}
 
+	void ResetFOWMap() {
+		game_map_fow = std::string(game_map_fow.length(), '.');
+	}
 
 	void CountTheChicken(int cargoType) {
 		switch (cargoType)
@@ -1105,7 +1173,6 @@ public:
 		}
 	}
 
-
 	bool DropInventoryItemOnToMap( int item_to_drop) {
 		int cargoType = 0;
 		for (int i = 0; i < cargos.size(); ++i) {
@@ -1119,12 +1186,16 @@ public:
 						return true;	// inventory dropped
 					}
 					else {
-						return false;	// the location is occopied
+						return false;	// the location is occupied
 					}
 				}
 			}
 		}
 		return false;
+	}
+
+	int GetItemFromFOWMap( olc::vi2d coord) {
+		return game_map_fow[coord.y * charmap_dim.x + coord.x] ;
 	}
 
 
@@ -1165,6 +1236,40 @@ public:
 	}
 
 
+	int GetOffsetIn1D(olc::vi2d pp, olc::vi2d o, int maxLen) {
+		int c = (pp.y + o.y) * (pp.x + o.x) + (pp.x + o.x);
+
+		if (c < 0) c = 0;
+		if (c > maxLen) c = maxLen;
+
+		return c;
+	}
+
+	void FOWMakeView(olc::vi2d pp) {
+		olc::vi2d o = { 0, 0 };
+		int strInx = 0;
+
+		// current pos
+		o = { 0, 0};  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' ';
+
+		// all sides
+		o = { -1, 0 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' '; // w
+		o = { 1, 0 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' ';  // e
+		o = { 0, 1 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' ';  // s
+		o = { 0, -1 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' '; // n
+
+		// diagonales
+		o = { -1, -1 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' ';  // nw
+		o = { 1, 1 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' '; // se
+		o = { 1, -1 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' '; // ne
+		o = { -1, 1 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' '; // sw
+	}
+
+	void MakeFOWMapVisibleToPlayer(olc::vi2d ship_in_map_pos) {
+		FOWMakeView( ship_in_map_pos);
+	}
+
+
 	void DrawGameMapOnScreen(olc::vf2d ship_pos) {
 		float cx;
 		float cy;
@@ -1185,6 +1290,8 @@ public:
 		for (int i = 0; i < cargos.size(); ++i) {
 			cx = (cargos[i].pos.x - ship_pos.x + ship_on_screen_pos.x);
 			cy = (cargos[i].pos.y - ship_pos.y + ship_on_screen_pos.y);
+
+
 			// don't draw the object if it is outside the clip radius
 			// Radius
 			//if (sqrt((ship_pos.x - cargos[i].pos.x) * (ship_pos.x - cargos[i].pos.x) + (ship_pos.y - cargos[i].pos.y) * (ship_pos.y - cargos[i].pos.y)) < game_clip_objects_radius) {
@@ -1193,21 +1300,27 @@ public:
 			//	DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
 			//}
 
+			
+			
 			// clip rect
 			if ((cargos[i].pos.x - ship_pos.x) > clip_rectangle.tl.x && (cargos[i].pos.x - ship_pos.x) < clip_rectangle.br.x 
 				&& (cargos[i].pos.y - ship_pos.y) > clip_rectangle.tl.y && (cargos[i].pos.y - ship_pos.y) < clip_rectangle.br.y) {
 
 				center_x = cx - (spr_bg_tile->width * bg_tile_scale_x) / 2;
 				center_y = cy - (spr_bg_tile->height * bg_tile_scale_y) / 2;
-				switch (cargos[i].cargoType)
-				{
-				case 'o':
-					DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_border_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
-					break;
-				case ' ':
-				default:
-					DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
-					break;
+				
+				olc::vi2d mc = WorldToMapCoord(cargos[i].pos);
+				if (game_map_fow[mc.y * mc.x + mc.x] != '.') {
+					switch (cargos[i].cargoType)
+					{
+					case 'o':
+						DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_border_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
+						break;
+					case ' ':
+					default:
+						DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
+						break;
+					}
 				}
 			}
 		}
@@ -1239,38 +1352,43 @@ public:
 			// don't draw the object if it is outside the clip radius
 			if (sqrt((ship_pos.x - cargos[i].pos.x) * (ship_pos.x - cargos[i].pos.x) + (ship_pos.y - cargos[i].pos.y) * (ship_pos.y - cargos[i].pos.y)) < game_clip_objects_radius) {
 				draw_id_on_object = false;
-				switch (cargos[i].cargoType)
-				{
-				case '*':
-					dec_scale = 0.3f;
-					center_x = cx - (spr_startpad->width * dec_scale) / 2;
-					center_y = cy - (spr_startpad->height * dec_scale) / 2;
-					DrawDecal(olc::vf2d{ center_x, center_y }, dec_startpad, olc::vf2d{ dec_scale,dec_scale });
-					break;
-				case 'd':
-					dec_scale = 0.1f;
-					center_x = cx - (spr_chest->width * dec_scale) / 2;
-					center_y = cy - (spr_chest->height * dec_scale) / 2;
-					DrawDecal(olc::vf2d{ center_x, center_y }, dec_chest, olc::vf2d{ dec_scale,dec_scale });
-					break;
-				case ' ':
-					break;
-				case 'o':	// border tile
-					break;
-				default:
-					// Draw the orb
-					dec_scale = 0.1f;
-					center_x = cx - (spr_orb->width * dec_scale) / 2;
-					center_y = cy - (spr_orb->height * dec_scale) / 2;
-					DrawDecal(olc::vf2d{ center_x, center_y }, dec_orb, olc::vf2d{ dec_scale,dec_scale });
-					draw_id_on_object = true;
-					break;
-				}
 
-				if ( draw_id_on_object) {
-					ss.str(""); ss << std::setw(1) << static_cast<char>(cargos[i].cargoType);
-					DrawStringDecal({ cx - 3.0f,cy - 3.0f }, ss.str());
-					DrawStringDecal({ float(int(cx) - 3),float(int(cy) - 3 )}, ss.str());
+				olc::vi2d mc = WorldToMapCoord(cargos[i].pos);
+				if (game_map_fow[mc.y * mc.x + mc.x] != '.') {
+
+					switch (cargos[i].cargoType)
+					{
+					case '*':
+						dec_scale = 0.3f;
+						center_x = cx - (spr_startpad->width * dec_scale) / 2;
+						center_y = cy - (spr_startpad->height * dec_scale) / 2;
+						DrawDecal(olc::vf2d{ center_x, center_y }, dec_startpad, olc::vf2d{ dec_scale,dec_scale });
+						break;
+					case 'd':
+						dec_scale = 0.1f;
+						center_x = cx - (spr_chest->width * dec_scale) / 2;
+						center_y = cy - (spr_chest->height * dec_scale) / 2;
+						DrawDecal(olc::vf2d{ center_x, center_y }, dec_chest, olc::vf2d{ dec_scale,dec_scale });
+						break;
+					case ' ':
+						break;
+					case 'o':	// border tile
+						break;
+					default:
+						// Draw the orb
+						dec_scale = 0.1f;
+						center_x = cx - (spr_orb->width * dec_scale) / 2;
+						center_y = cy - (spr_orb->height * dec_scale) / 2;
+						DrawDecal(olc::vf2d{ center_x, center_y }, dec_orb, olc::vf2d{ dec_scale,dec_scale });
+						draw_id_on_object = true;
+						break;
+					}
+
+					if (draw_id_on_object) {
+						ss.str(""); ss << std::setw(1) << static_cast<char>(cargos[i].cargoType);
+						DrawStringDecal({ cx - 3.0f,cy - 3.0f }, ss.str());
+						// DrawStringDecal({ float(int(cx) - 3),float(int(cy) - 3 )}, ss.str());
+					}
 				}
 			}
 
@@ -1374,39 +1492,33 @@ public:
 
 		// draw cargos
 		for (int i = 0; i < cargos.size(); ++i) {
-			// get position in game_map_fow
-			// mm_pos.x + int((ship_pos.x) * scale_x)
-			//float gm_fow_x = int(world_max.x / (cargos[i].pos.x+1));
-			//float gm_fow_y = int(world_max.y / (cargos[i].pos.y+1));
-
-			//if (game_map_fow[gm_fow_y * gm_fow_x + gm_fow_x] == '.') {
-			//	FillRect({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, { 10, 10 }, olc::RED);
-			//}
-			//else
 			if (cargos[i].cargoType != ' ') {
 				// TODO: calculate what size we need regarding the size of map versus size of minimap on screen
 				// Draw({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, olc::GREEN);
 
+				olc::vi2d mc = WorldToMapCoord(cargos[i].pos);
+				if (game_map_fow[mc.y * mc.x + mc.x] != '.') {
 
-				switch (char(cargos[i].cargoType)) {
-				case 'o':
-					FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::WHITE);
-					break;
-				case 'd':
-					// draw dropzone
-					// FillCircle({ mm_pos.x + int(dropzone.x * scale_x), mm_pos.y + int(dropzone.y * scale_y) }, 1, olc::RED);
-					FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::RED);
-					break;
-				case '*':
-					// draw startpad
-					// FillCircle({ mm_pos.x + int(dropzone.x * scale_x), mm_pos.y + int(dropzone.y * scale_y) }, 1, olc::YELLOW);
-					FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::YELLOW);
-					break;
-				case ' ':
-					break;
-				default:
-					FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::GREEN);
-					break;
+					switch (char(cargos[i].cargoType)) {
+					case 'o':
+						FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::WHITE);
+						break;
+					case 'd':
+						// draw dropzone
+						// FillCircle({ mm_pos.x + int(dropzone.x * scale_x), mm_pos.y + int(dropzone.y * scale_y) }, 1, olc::RED);
+						FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::RED);
+						break;
+					case '*':
+						// draw startpad
+						// FillCircle({ mm_pos.x + int(dropzone.x * scale_x), mm_pos.y + int(dropzone.y * scale_y) }, 1, olc::YELLOW);
+						FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::YELLOW);
+						break;
+					case ' ':
+						break;
+					default:
+						FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::GREEN);
+						break;
+					}
 				}
 			}
 		}
