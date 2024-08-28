@@ -102,6 +102,8 @@ public:
 	// *** Game ***
 	// first char based game map, don't need it, can generate it
 	std::string game_map;
+	std::string game_map_fow;
+	olc::vi2d gm_world_to_map_inx = { };
 	olc::vi2d charmap_dim = { 16, 20 };
 	olc::vi2d instructions_pos = { 50, 50 };
 	float game_critical_landing_velocity = -150.0f;
@@ -119,7 +121,7 @@ public:
 	olc::vf2d world_max = { 1000.0f,1000.0f }; // *16.0f / 9.0f };
 	olc::vf2d startpos;			// start position on the map
 	olc::vf2d dropzone;  		// dropzone position on the map
-	std::vector<cargo> cargos;	// yea you guessed it
+	std::vector<cargo> cargos;	// yea you guessed it! Or not, TODO: this is actually the content of the map :insane_face:
 	bool cargo_no_pickup = false;
 	bool mouse_control_toggle = false;
 	bool hud_toggle = true;
@@ -130,7 +132,10 @@ public:
 	olc::vf2d docked_pos = { 0.0f ,0.0f };				// initialized in oncreate 
 	olc::vf2d inventory_weight_pos = { 100.0f, 10.0f };
 	olc::vf2d score_pos{ 10.0f,10.0f };
-	
+	bool msg_box_toggle = false;
+	float gameSpeed = 20.0f;
+	bool game_toggle_pause = false;
+
 	// docked at string pos = -
 
 	// need some temperary stuff
@@ -163,9 +168,21 @@ public:
 		float sx = world_max.x / charmap_dim.x;
 		float sy = world_max.y / charmap_dim.y;
 
+		player_deliveries = 0;
+		ship_crashed = false;
+		last_velocity_before_crashlanding = 0.0f;
+		player_points = 0;
+		ship_velocity_x = 0.0f;
+		ship_velocity_y = 0.0f;
+		ship_velocity_z = 0.0f;
+
 		// wipe inventory
 		inventory.clear();
 		cargos.clear();
+
+		ResetFOWMap();
+		altitude = 0.0f;
+		throttle1 = throttle2 = throttle3 = throttle4 = 0.0f;
 
 		// scan the rows
 		char ch;
@@ -194,21 +211,16 @@ public:
 
 						cargos.push_back({ {float(x) * sx,float(y) * sy},ch });
 					}
+					else {
+						std::cout << "Terrible things happens in initGameMap\n";
+						exit(1);
+					}
 					break;
 				}
 			}
 		}
 	}
 
-
-	/*
-	void DrawCargoPos(olc::vi2d txtpos, olc::vf2d p) {
-		tmpstr = "CargoPos ";
-		DrawString(txtpos, tmpstr);
-		ss.str("");	ss << p.x; tmpstr = ss.str(); DrawString({ txtpos.x + 100, txtpos.y }, tmpstr, olc::YELLOW);
-		ss.str("");	ss << p.y; tmpstr = ss.str(); DrawString({ txtpos.x + 160, txtpos.y }, tmpstr, olc::YELLOW);
-	}
-	*/
 
 	bool OnUserCreate() override
 	{
@@ -241,6 +253,28 @@ public:
 		game_map += "o              o";
 		game_map += "o9            9o";
 		game_map += "oooooooooooooooo";
+
+		game_map_fow  = "                ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += " .............. ";
+		game_map_fow += "                ";
+
 
 		ship_on_screen_pos = { ScreenWidth() / 2,ScreenHeight() / 2 };
 		docked_pos = { float(ScreenWidth() / 2 - 70), 36.0f };
@@ -299,20 +333,9 @@ public:
 		mouse_pos_old = mouse_pos;
 		mouse_pos = GetMousePos();
 
-		// olc::vi2d yokeStrength;
-		// yokeStrength = mouse_pos - ship_pos;
-
 		TimerUpdateTrigger(fElapsedTime, 200);
 
 		Clear(olc::VERY_DARK_BLUE);
-
-		// Draw mouse cursor
-		//DrawLineDecal(mouse_pos - olc::vi2d{ 5,5 }, mouse_pos + olc::vi2d{ 5,5 }, olc::RED);
-		//DrawLineDecal(mouse_pos - olc::vi2d{ -5,5 }, mouse_pos + olc::vi2d{ -5,5 }, olc::RED);
-		//ss.str(""); ss << "(" << mouse_pos.x << "," << mouse_pos.y << ")";
-		// DrawString(mouse_pos, ss.str(), olc::RED);
-
-
 
 		// Main game loop
 		if (game_state == state::GAMEON) {
@@ -320,292 +343,16 @@ public:
 			// todo: wrong way, must improve...
 			//       Should be able to have max throttle at any angle without the ship rights itself
 			//		 and reverts to average throttle...
-			ship_angle_x = float(M_PI_2) * (((throttle1 + throttle2) - (throttle3 + throttle4)) / 2);
-			ship_angle_y = float(M_PI_2) * (((throttle1 + throttle4) - (throttle2 + throttle3)) / 2);
 
-			// boost throttle if shift is held,  hush now
-			if (GetKey(olc::Key::SHIFT).bHeld)
-				boostScale = 4.0f;
-			else 
-				boostScale = 1.0f;
-
-			// Add mouse support
-			mouse_wheel_old = mouse_wheel;
-			mouse_wheel = GetMouseWheel();
-			int mouse_dead_zone;
-			mouse_dead_zone = 10;
-
-			olc::vf2d mouse_ship_response;
-			mouse_ship_response.x = float(abs(mouse_pos.x - ship_on_screen_pos.x)); 
-			mouse_ship_response.y = float(abs(mouse_pos.y - ship_on_screen_pos.y)); 
-
-			if (ship_autolevel_toggle) {
-				mouse_ship_response.x *= 0.05f;
-				mouse_ship_response.y *= 0.05f;
-			}
-			else if (!ship_autolevel_toggle) {
-				mouse_ship_response.x *= 0.01f;
-				mouse_ship_response.y *= 0.01f;
-			}
-
-			if (mouse_control_toggle) {
-				// move right 
-				if (mouse_pos.x >= (ship_on_screen_pos.x + mouse_dead_zone)) {
-					throttle1 += fElapsedTime * mouse_ship_response.x;
-					throttle2 += fElapsedTime * mouse_ship_response.x;
-					throttle3 -= fElapsedTime * mouse_ship_response.x;
-					throttle4 -= fElapsedTime * mouse_ship_response.x;
-					if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
-					if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
-					if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
-					if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
-				}
-				// move left 
-				if (mouse_pos.x < (ship_on_screen_pos.x - mouse_dead_zone)) {
-					throttle1 -= fElapsedTime * mouse_ship_response.x;
-					throttle2 -= fElapsedTime * mouse_ship_response.x;
-					throttle3 += fElapsedTime * mouse_ship_response.x;
-					throttle4 += fElapsedTime * mouse_ship_response.x;
-					if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
-					if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
-					if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
-					if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
-				}
-
-				// move down
-				if (mouse_pos.y >= (ship_on_screen_pos.y + mouse_dead_zone)) {
-					throttle1 += fElapsedTime * mouse_ship_response.y;
-					throttle2 -= fElapsedTime * mouse_ship_response.y;
-					throttle3 -= fElapsedTime * mouse_ship_response.y;
-					throttle4 += fElapsedTime * mouse_ship_response.y;
-					if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle; if (throttle1 > 1.0) throttle1 = 1.0;
-					if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle; if (throttle2 > 1.0) throttle2 = 1.0;
-					if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle; if (throttle3 > 1.0) throttle3 = 1.0;
-					if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle; if (throttle4 > 1.0) throttle4 = 1.0;
-				}
-
-				// move down
-				if (mouse_pos.y < (ship_on_screen_pos.y - mouse_dead_zone)) {
-					throttle1 -= fElapsedTime * mouse_ship_response.y;
-					throttle2 += fElapsedTime * mouse_ship_response.y;
-					throttle3 += fElapsedTime * mouse_ship_response.y;
-					throttle4 -= fElapsedTime * mouse_ship_response.y;
-					if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
-					if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
-					if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
-					if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
-				}
-			}
-
-
-			ship_throttle_key_held = false;
-			// power to all engines
-			if (GetKey(olc::Key::UP).bHeld || ((mouse_wheel > 0) && mouse_control_toggle) ) {
-				float mouse_response = 1.0f;
-				if (mouse_wheel > 0)
-					mouse_response = 2.0f;
-
-				if (altitude < max_altitude) {
-					throttle1 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle1 > 1.0f * boostScale) throttle1 = 1.0f * boostScale;
-					throttle2 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle2 > 1.0f * boostScale) throttle2 = 1.0f * boostScale;
-					throttle3 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle3 > 1.0f * boostScale) throttle3 = 1.0f * boostScale;
-					throttle4 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle4 > 1.0f * boostScale) throttle4 = 1.0f * boostScale;
-					ship_throttle_key_held = true;
-					auto_alt_hold = altitude;
-				}
-			}
-
-			if (GetKey(olc::Key::DOWN).bHeld || ((mouse_wheel < 0) && mouse_control_toggle)) {
-				throttle1 -= fElapsedTime * ship_response; if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;
-				throttle2 -= fElapsedTime * ship_response; if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;
-				throttle3 -= fElapsedTime * ship_response; if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;
-				throttle4 -= fElapsedTime * ship_response; if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;
-				ship_throttle_key_held = true;
-				auto_alt_hold = altitude;
-			}
-
-			ship_tilt_key_held = false;
-			// roll left
-			// Increse 3 and 4
-			// decrese 1 and 2
-			// int mouse_deadzone = 50;
-			if (GetKey(olc::Key::A).bHeld) {
-				throttle1 -= fElapsedTime * ship_response;
-				throttle2 -= fElapsedTime * ship_response;
-				throttle3 += fElapsedTime * ship_response;
-				throttle4 += fElapsedTime * ship_response;
-				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
-				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
-				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
-				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
-				ship_tilt_key_held = true;
-			}
-			// roll right
-			// Increse 1 and 2
-			// decrese 3 and 4
-			if (GetKey(olc::Key::D).bHeld) {
-				throttle1 += fElapsedTime * ship_response;
-				throttle2 += fElapsedTime * ship_response;
-				throttle3 -= fElapsedTime * ship_response;
-				throttle4 -= fElapsedTime * ship_response;
-				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
-				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
-				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
-				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
-				ship_tilt_key_held = true;
-			}
-			// pitch forward
-			// Increse 2 and 3
-			// decrese 1 and 4
-			if (GetKey(olc::Key::W).bHeld) {
-				throttle1 -= fElapsedTime * ship_response;
-				throttle2 += fElapsedTime * ship_response;
-				throttle3 += fElapsedTime * ship_response;
-				throttle4 -= fElapsedTime * ship_response;
-				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
-				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
-				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
-				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
-				ship_tilt_key_held = true;
-			}
-			// pitch back
-			// Increse 1 and 4
-			// decrese 2 and 3
-			if (GetKey(olc::Key::S).bHeld) {
-				throttle1 += fElapsedTime * ship_response;
-				throttle2 -= fElapsedTime * ship_response;
-				throttle3 -= fElapsedTime * ship_response;
-				throttle4 += fElapsedTime * ship_response;
-				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle; if (throttle1 > 1.0) throttle1 = 1.0;
-				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle; if (throttle2 > 1.0) throttle2 = 1.0;
-				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle; if (throttle3 > 1.0) throttle3 = 1.0;
-				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle; if (throttle4 > 1.0) throttle4 = 1.0;
-				ship_tilt_key_held = true;
-			}
-
-
-			if (!game_toggle_intro) {
-				// calculate throttle average from engines
-				ship_avr_throttle = (throttle1 + throttle2 + throttle3 + throttle4) / 4;
-
-				// reset the throttle to neutral position
-				if (GetKey(olc::Key::SPACE).bPressed) {
-					ship_autolevel_toggle = !ship_autolevel_toggle;
-				}
-
-				//if (ship_autolevel_toggle)
-				//	DrawStringDecal({ float(ScreenWidth() / 2 - 12 * 8 / 2), 25.0f }, "Autoleveling ON", olc::GREEN);
-
-				// reset the throttle to neutral position
-				if (GetKey(olc::Key::T).bPressed) {
-					ship_autothrottle_toggle = !ship_autothrottle_toggle;
-				}
-
-
-				// autolevel the ship if not any input from player
-				if (ship_autolevel_toggle && !ship_tilt_key_held) {
-					float autolevel_speed_scale = 2.0f;
-
-					if (throttle1 < ship_avr_throttle)
-						throttle1 += fElapsedTime * autolevel_speed_scale;
-					else if (throttle1 > ship_avr_throttle)
-						throttle1 -= fElapsedTime * autolevel_speed_scale;
-
-					if (throttle2 < ship_avr_throttle)
-						throttle2 += fElapsedTime * autolevel_speed_scale;
-					else if (throttle2 > ship_avr_throttle)
-						throttle2 -= fElapsedTime * autolevel_speed_scale;
-
-					if (throttle3 < ship_avr_throttle)
-						throttle3 += fElapsedTime * autolevel_speed_scale;
-					else if (throttle3 > ship_avr_throttle)
-						throttle3 -= fElapsedTime * autolevel_speed_scale;
-
-					if (throttle4 < ship_avr_throttle)
-						throttle4 += fElapsedTime * autolevel_speed_scale;
-					else if (throttle4 > ship_avr_throttle)
-						throttle4 -= fElapsedTime * autolevel_speed_scale;
-				}
-
-
-				float gameSpeed = 20.0f;
-				// to hight, auto throtteling down
-				if (altitude >= max_altitude)
-					ship_velocity_z = 0.0;
-				else {
-					// thrust in z axis
-					float angle_dec_thrust = cos(ship_angle_x/1.5f) * cos(ship_angle_y/1.5f); // invert it?
-					ship_velocity_z += fElapsedTime * gameSpeed * angle_dec_thrust * ship_avr_throttle;
-				}
-
-				ship_velocity_z -= fElapsedTime * gameSpeed * gravity;
-				ship_velocity_z -= fElapsedTime * ship_weight * 0.005f; // normalize weight
-				ship_velocity_x += fElapsedTime * gameSpeed * sin(ship_angle_x);
-				ship_velocity_y += fElapsedTime * gameSpeed * sin(ship_angle_y);
-
-				if (game_state == state::GAMEON)
-					last_velocity_before_crashlanding = ship_velocity_z; // *velocity_scale;    // for checking if you crashed hard into ground
-
-				altitude += fElapsedTime * gameSpeed * ship_velocity_z;
-
-				// cap ship velocity in xy
-				if ((ship_velocity_x ) >  ship_cap_vel_xy.x) 	ship_velocity_x =   ship_cap_vel_xy.x ;
-				if ((ship_velocity_x ) < -ship_cap_vel_xy.x)	ship_velocity_x = -(ship_cap_vel_xy.x );
-				if ((ship_velocity_y ) >  ship_cap_vel_xy.y) 	ship_velocity_y =   ship_cap_vel_xy.y ;
-				if ((ship_velocity_y ) < -ship_cap_vel_xy.y)	ship_velocity_y = -(ship_cap_vel_xy.y );
-
-				ship_pos.x += fElapsedTime * gameSpeed / 4 * ship_velocity_x;
-				ship_pos.y += fElapsedTime * gameSpeed / 4 * ship_velocity_y;
-
-				// limit the ship inside the map area , bounch back halves the velocity
-				float shipworldendx = (world_max.x / charmap_dim.x) * (charmap_dim.x-2);
-				float shipworldendy = (world_max.y / charmap_dim.y) * (charmap_dim.y -2 );
-				float shipworldstartx = (world_max.x / charmap_dim.x);
-				float shipworldstarty = (world_max.y / charmap_dim.y);
-				if (ship_pos.x <= shipworldstartx) { ship_pos.x = shipworldstartx; ship_velocity_x *= -0.5f; }
-				if (ship_pos.x >= shipworldendx) { ship_pos.x = shipworldendx; ship_velocity_x *= -0.5f; }
-				if (ship_pos.y <= shipworldstarty) { ship_pos.y = shipworldstarty; ship_velocity_y *= -0.5f; }
-				if (ship_pos.y >= shipworldendy) { ship_pos.y = shipworldendy; ship_velocity_y *= -0.5f; }
-
-				if (altitude < 0.0f) {
-					altitude = 0.0f;
-					ship_velocity_x = 0.0f; // x
-					ship_velocity_y = 0.0f; // y
-					ship_velocity_z = 0.0f; // z
-				}
-
-				// engine speed sound relative to the avg throttle
-				engine_sound_speed = 1.0f + 2.0f * ship_avr_throttle;
-				ma_engine.SetPitch(sound_ship_id, engine_sound_speed);
-
-			} // physics update toggled off if game_toggle_intro
-
-			// toggle the intro/instruction page
-			if (GetKey(olc::Key::F1).bPressed) {
-				game_toggle_intro = !game_toggle_intro;
-			}
 
 			// no more cargo to pick up, if you deliver this you win -------
 			int items_in_cargos = int(std::count_if(cargos.begin(), cargos.end(),
 				[](cargo c) { return isdigit(c.cargoType); }));
 
-//			if (cargos.size() == 2) {  // only startpad and dropzone left
 			if (items_in_cargos == 0) {  // only startpad and dropzone left
 				if (inventory.size() == 0)   // and inventory delivered
 					game_state = state::GAMEWON;  // goal!!!
 			}
-
-			// Dont draw anything while showing the intro screen
-			if (!game_toggle_intro) {
-				DrawGameMapOnScreen(ship_pos);  // TODO: Add shadow of war
-				DrawHUD(hud_toggle);
-				DrawMinimap(minimap_position, ship_pos);
-				DrawInventoryOnShip();
-				DrawShip();
-				DrawMouseCursor(mouse_control_toggle);
-			}
-			else
-				Instructions(instructions_pos + olc::vi2d{ 30,50 });
 
 			// show alert if decending dangerously fast
 			timer_descent_vel_alert_active = false;
@@ -634,8 +381,6 @@ public:
 			// play the altitude alert sound
 			if (sound_altitude_alert_play) {
 				sound_altitude_alert_play = false;
-				// this triggers every 500ms,  it frikes out the wave_engine...  so silence it is for now
-				// miniaudio could cope tho...
 			}
 
 			// play the cargo pickup sound
@@ -658,30 +403,75 @@ public:
 
 			}
 
-			// Purge the last item from inventory
-			if (GetKey(olc::Key::P).bPressed) {
-				if (inventory.size() > 0) {
-					inventory.erase(inventory.end() - 1);
-					sound_purge_play = true;
+			// toggle the intro/instruction page
+			if (GetKey(olc::Key::F1).bPressed) {
+				game_toggle_intro = !game_toggle_intro;
+				game_toggle_pause = !game_toggle_pause;
+			}
+
+			// engine speed sound relative to the avg throttle
+			if (!game_toggle_pause) {
+				// drop/jettison item back into map if position is free
+				if (GetKey(olc::Key::J).bPressed) {
+					if (DropLastItemToMap())  // dropped then play wav if not, do nothing
+						sound_purge_play = true;
 				}
+
+				// reset the throttle to neutral position
+				if (GetKey(olc::Key::SPACE).bPressed) {
+					ship_autolevel_toggle = !ship_autolevel_toggle;
+				}
+
+				// TODO: Make the auto throttle work
+				if (GetKey(olc::Key::T).bPressed) {
+					ship_autothrottle_toggle = !ship_autothrottle_toggle;
+				}
+
+				// must start the sounds again if they are finished playing
+				if (!ma_engine.IsPlaying(sound_ship_id))
+					ma_engine.Toggle(sound_ship_id, true);
+
+				// only loop the music if the music is turned on 
+				if (sound_music_toggle)
+					if (!ma_engine.IsPlaying(sound_bgm_id))
+						ma_engine.Toggle(sound_bgm_id, true);
+
+				engine_sound_speed = 1.0f + 2.0f * ship_avr_throttle;
+				ma_engine.SetPitch(sound_ship_id, engine_sound_speed);
 			}
 
-			// drop/jettison item back into map if position is free
-			if (GetKey(olc::Key::J).bPressed) {
-				if( DropLastItemToMap())  // dropped then play wav if not, do nothing
-					sound_purge_play = true;
+
+			// Dont update anything while showing the intro screen
+			if (!game_toggle_intro) {
+				if (!game_toggle_pause) {
+					UpdatePhysics(fElapsedTime);
+				} // physics update toggled off if game_toggle_intro
+
+				olc::vi2d mc = WorldToMapCoord(ship_pos);
+				// open up the fow in a circle around the player
+				FOWMakeView(mc);
+
+				DrawGameMapOnScreen(ship_pos);  // TODO: Add fog war
+				DrawHUD(hud_toggle);
+				DrawMinimap(minimap_position, ship_pos); // TODO: Add fog of war
+				DrawInventoryOnShip();
+				DrawShip();
+				olc::vi2d tmpinx = WorldToMapCoord(ship_pos);
+
+				// TODO: just a test, delete when the fun is over
+				if (msg_box_toggle) {
+					ss.str(""); ss << " The game is paused, take a break ";
+					MsgBox({ 100.0f, 110.0f }, ss.str());
+				}
+
+				//  ShowFOWMap({ 20.0f,150.0f });
+				// ShowShipOnFOWMap({ 20.0f,150.0f });
+
+				DrawMouseCursor(mouse_control_toggle);
 			}
-
-			// must start the sounds again if they are finished playing
-			if (!ma_engine.IsPlaying(sound_ship_id)) 
-				ma_engine.Toggle(sound_ship_id, true);
-
-			// only loop the music if the music is turned on 
-			if ( sound_music_toggle)
-				if (!ma_engine.IsPlaying(sound_bgm_id))
-					ma_engine.Toggle(sound_bgm_id, true);
-
-
+			else {
+				Instructions(instructions_pos + olc::vi2d{ 30,50 });
+			}
 
 		} // endif: state_GAMEON ---
 
@@ -692,12 +482,25 @@ public:
 			if (GetKey(olc::Key::M).bPressed) {
 				mouse_control_toggle = !mouse_control_toggle;
 			}
+			// Purge the last item from inventory
+			if (GetKey(olc::Key::P).bPressed) {
+				if (inventory.size() > 0) {
+					inventory.erase(inventory.end() - 1);
+					sound_purge_play = true;
+				}
+			}
 		}
 		else {
 			// Toggle background music
 			if (GetKey(olc::Key::M).bPressed) {
 				sound_music_toggle = !sound_music_toggle;
 				ma_engine.Toggle(sound_bgm_id);
+			}
+			if (GetKey(olc::Key::P).bPressed) {
+				msg_box_toggle = !msg_box_toggle;
+				game_toggle_pause = !game_toggle_pause;
+				ma_engine.Toggle(sound_bgm_id);
+				ma_engine.Toggle(sound_ship_id);
 			}
 		}
 
@@ -713,20 +516,9 @@ public:
 
 		// Intro state, Set up a new game
 		if (game_state == state::INTRO) {
-			player_deliveries = 0;
-			ship_crashed = false;
-			last_velocity_before_crashlanding = 0.0f;
-			player_points = 0;
-			ship_velocity_x = 0.0f;
-			ship_velocity_y = 0.0f;
-			ship_velocity_z = 0.0f;
-			throttle1 = 0.0f;
-			throttle2 = 0.0f;
-			throttle3 = 0.0f;
-			throttle4 = 0.0f;
-
 			Instructions(instructions_pos);
 			if (GetKey(olc::Key::ENTER).bPressed || GetKey(olc::Key::SPACE).bPressed) {
+				InitGameMap();
 				game_state = state::GAMEON;
 				ma_engine.Toggle(sound_ship_id, true);
 				if ( sound_music_toggle)
@@ -742,9 +534,7 @@ public:
 			if (GetKey(olc::Key::SPACE).bReleased) {
 				if (!ship_crashed) {
 					game_state = state::GAMEON;
-					// ma_engine.Toggle(sound_engine_id, false);
 					ma_engine.Pause(sound_ship_id);
-					// wave_engine.SetOutputVolume(0.8f);
 				}
 				else
 					RestartGame();
@@ -769,12 +559,264 @@ public:
 
 		// If not playing, kill the volume
 		if (game_state == state::INTRO) {
-			// wave_engine.SetOutputVolume(0.0f);
 			ma_engine.Pause(sound_ship_id);
 		}
 
 		return true;
 	} // end Update ---
+
+
+
+
+	void UpdatePhysics(float fElapsedTime) {
+		ship_angle_x = float(M_PI_2) * (((throttle1 + throttle2) - (throttle3 + throttle4)) / 2);
+		ship_angle_y = float(M_PI_2) * (((throttle1 + throttle4) - (throttle2 + throttle3)) / 2);
+
+		// boost throttle if shift is held,  hush now
+		if (GetKey(olc::Key::SHIFT).bHeld)
+			boostScale = 4.0f;
+		else
+			boostScale = 1.0f;
+
+		// Add mouse support
+		mouse_wheel_old = mouse_wheel;
+		mouse_wheel = GetMouseWheel();
+		int mouse_dead_zone;
+		mouse_dead_zone = 10;
+
+		olc::vf2d mouse_ship_response;
+		mouse_ship_response.x = float(abs(mouse_pos.x - ship_on_screen_pos.x));
+		mouse_ship_response.y = float(abs(mouse_pos.y - ship_on_screen_pos.y));
+
+		if (ship_autolevel_toggle) {
+			mouse_ship_response.x *= 0.05f;
+			mouse_ship_response.y *= 0.05f;
+		}
+		else if (!ship_autolevel_toggle) {
+			mouse_ship_response.x *= 0.01f;
+			mouse_ship_response.y *= 0.01f;
+		}
+
+		if (mouse_control_toggle) {
+			// move right 
+			if (mouse_pos.x >= (ship_on_screen_pos.x + mouse_dead_zone)) {
+				throttle1 += fElapsedTime * mouse_ship_response.x;
+				throttle2 += fElapsedTime * mouse_ship_response.x;
+				throttle3 -= fElapsedTime * mouse_ship_response.x;
+				throttle4 -= fElapsedTime * mouse_ship_response.x;
+				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
+				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
+				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
+				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+			}
+			// move left 
+			if (mouse_pos.x < (ship_on_screen_pos.x - mouse_dead_zone)) {
+				throttle1 -= fElapsedTime * mouse_ship_response.x;
+				throttle2 -= fElapsedTime * mouse_ship_response.x;
+				throttle3 += fElapsedTime * mouse_ship_response.x;
+				throttle4 += fElapsedTime * mouse_ship_response.x;
+				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
+				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
+				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
+				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+			}
+
+			// move down
+			if (mouse_pos.y >= (ship_on_screen_pos.y + mouse_dead_zone)) {
+				throttle1 += fElapsedTime * mouse_ship_response.y;
+				throttle2 -= fElapsedTime * mouse_ship_response.y;
+				throttle3 -= fElapsedTime * mouse_ship_response.y;
+				throttle4 += fElapsedTime * mouse_ship_response.y;
+				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle; if (throttle1 > 1.0) throttle1 = 1.0;
+				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle; if (throttle2 > 1.0) throttle2 = 1.0;
+				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle; if (throttle3 > 1.0) throttle3 = 1.0;
+				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle; if (throttle4 > 1.0) throttle4 = 1.0;
+			}
+
+			// move down
+			if (mouse_pos.y < (ship_on_screen_pos.y - mouse_dead_zone)) {
+				throttle1 -= fElapsedTime * mouse_ship_response.y;
+				throttle2 += fElapsedTime * mouse_ship_response.y;
+				throttle3 += fElapsedTime * mouse_ship_response.y;
+				throttle4 -= fElapsedTime * mouse_ship_response.y;
+				if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
+				if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
+				if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
+				if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+			}
+		}
+
+
+		ship_throttle_key_held = false;
+		// power to all engines
+		if (GetKey(olc::Key::UP).bHeld || ((mouse_wheel > 0) && mouse_control_toggle)) {
+			float mouse_response = 1.0f;
+			if (mouse_wheel > 0)
+				mouse_response = 2.0f;
+
+			if (altitude < max_altitude) {
+				throttle1 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle1 > 1.0f * boostScale) throttle1 = 1.0f * boostScale;
+				throttle2 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle2 > 1.0f * boostScale) throttle2 = 1.0f * boostScale;
+				throttle3 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle3 > 1.0f * boostScale) throttle3 = 1.0f * boostScale;
+				throttle4 += fElapsedTime * ship_response * mouse_response * boostScale; if (throttle4 > 1.0f * boostScale) throttle4 = 1.0f * boostScale;
+				ship_throttle_key_held = true;
+				auto_alt_hold = altitude;
+			}
+		}
+
+		if (GetKey(olc::Key::DOWN).bHeld || ((mouse_wheel < 0) && mouse_control_toggle)) {
+			throttle1 -= fElapsedTime * ship_response; if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;
+			throttle2 -= fElapsedTime * ship_response; if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;
+			throttle3 -= fElapsedTime * ship_response; if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;
+			throttle4 -= fElapsedTime * ship_response; if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;
+			ship_throttle_key_held = true;
+			auto_alt_hold = altitude;
+		}
+
+		ship_tilt_key_held = false;
+		// roll left
+		// Increse 3 and 4
+		// decrese 1 and 2
+		// int mouse_deadzone = 50;
+		if (GetKey(olc::Key::A).bHeld) {
+			throttle1 -= fElapsedTime * ship_response;
+			throttle2 -= fElapsedTime * ship_response;
+			throttle3 += fElapsedTime * ship_response;
+			throttle4 += fElapsedTime * ship_response;
+			if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
+			if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
+			if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
+			if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+			ship_tilt_key_held = true;
+		}
+		// roll right
+		// Increse 1 and 2
+		// decrese 3 and 4
+		if (GetKey(olc::Key::D).bHeld) {
+			throttle1 += fElapsedTime * ship_response;
+			throttle2 += fElapsedTime * ship_response;
+			throttle3 -= fElapsedTime * ship_response;
+			throttle4 -= fElapsedTime * ship_response;
+			if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
+			if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
+			if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
+			if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+			ship_tilt_key_held = true;
+		}
+		// pitch forward
+		// Increse 2 and 3
+		// decrese 1 and 4
+		if (GetKey(olc::Key::W).bHeld) {
+			throttle1 -= fElapsedTime * ship_response;
+			throttle2 += fElapsedTime * ship_response;
+			throttle3 += fElapsedTime * ship_response;
+			throttle4 -= fElapsedTime * ship_response;
+			if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle;	if (throttle1 > 1.0) throttle1 = 1.0;
+			if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle;	if (throttle2 > 1.0) throttle2 = 1.0;
+			if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle;	if (throttle3 > 1.0) throttle3 = 1.0;
+			if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle;	if (throttle4 > 1.0) throttle4 = 1.0;
+			ship_tilt_key_held = true;
+		}
+		// pitch back
+		// Increse 1 and 4
+		// decrese 2 and 3
+		if (GetKey(olc::Key::S).bHeld) {
+			throttle1 += fElapsedTime * ship_response;
+			throttle2 -= fElapsedTime * ship_response;
+			throttle3 -= fElapsedTime * ship_response;
+			throttle4 += fElapsedTime * ship_response;
+			if (throttle1 < ship_idle_throttle) throttle1 = ship_idle_throttle; if (throttle1 > 1.0) throttle1 = 1.0;
+			if (throttle2 < ship_idle_throttle) throttle2 = ship_idle_throttle; if (throttle2 > 1.0) throttle2 = 1.0;
+			if (throttle3 < ship_idle_throttle) throttle3 = ship_idle_throttle; if (throttle3 > 1.0) throttle3 = 1.0;
+			if (throttle4 < ship_idle_throttle) throttle4 = ship_idle_throttle; if (throttle4 > 1.0) throttle4 = 1.0;
+			ship_tilt_key_held = true;
+		}
+
+		// calculate throttle average from engines
+		ship_avr_throttle = (throttle1 + throttle2 + throttle3 + throttle4) / 4;
+
+		// autolevel the ship if not any input from player
+		if (ship_autolevel_toggle && !ship_tilt_key_held) {
+			float autolevel_speed_scale = 2.0f;
+
+			if (throttle1 < ship_avr_throttle)
+				throttle1 += fElapsedTime * autolevel_speed_scale;
+			else if (throttle1 > ship_avr_throttle)
+				throttle1 -= fElapsedTime * autolevel_speed_scale;
+
+			if (throttle2 < ship_avr_throttle)
+				throttle2 += fElapsedTime * autolevel_speed_scale;
+			else if (throttle2 > ship_avr_throttle)
+				throttle2 -= fElapsedTime * autolevel_speed_scale;
+
+			if (throttle3 < ship_avr_throttle)
+				throttle3 += fElapsedTime * autolevel_speed_scale;
+			else if (throttle3 > ship_avr_throttle)
+				throttle3 -= fElapsedTime * autolevel_speed_scale;
+
+			if (throttle4 < ship_avr_throttle)
+				throttle4 += fElapsedTime * autolevel_speed_scale;
+			else if (throttle4 > ship_avr_throttle)
+				throttle4 -= fElapsedTime * autolevel_speed_scale;
+		}
+
+		// to hight, auto throtteling down
+		if (altitude >= max_altitude)
+			ship_velocity_z = 0.0;
+		else {
+			// thrust in z axis
+			float angle_dec_thrust = cos(ship_angle_x / 1.5f) * cos(ship_angle_y / 1.5f); // invert it?
+			ship_velocity_z += fElapsedTime * gameSpeed * angle_dec_thrust * ship_avr_throttle;
+		}
+
+		ship_velocity_z -= fElapsedTime * gameSpeed * gravity;
+		ship_velocity_z -= fElapsedTime * ship_weight * 0.005f; // normalize weight
+		ship_velocity_x += fElapsedTime * gameSpeed * sin(ship_angle_x);
+		ship_velocity_y += fElapsedTime * gameSpeed * sin(ship_angle_y);
+
+		if (game_state == state::GAMEON)
+			last_velocity_before_crashlanding = ship_velocity_z; // *velocity_scale;    // for checking if you crashed hard into ground
+
+		altitude += fElapsedTime * gameSpeed * ship_velocity_z;
+
+		// cap ship velocity in xy
+		if ((ship_velocity_x) > ship_cap_vel_xy.x) 	ship_velocity_x = ship_cap_vel_xy.x;
+		if ((ship_velocity_x) < -ship_cap_vel_xy.x)	ship_velocity_x = -(ship_cap_vel_xy.x);
+		if ((ship_velocity_y) > ship_cap_vel_xy.y) 	ship_velocity_y = ship_cap_vel_xy.y;
+		if ((ship_velocity_y) < -ship_cap_vel_xy.y)	ship_velocity_y = -(ship_cap_vel_xy.y);
+
+		ship_pos.x += fElapsedTime * gameSpeed / 4 * ship_velocity_x;
+		ship_pos.y += fElapsedTime * gameSpeed / 4 * ship_velocity_y;
+
+		// limit the ship inside the map area , bounch back halves the velocity
+		float shipworldendx = (world_max.x / charmap_dim.x) * (charmap_dim.x - 2);
+		float shipworldendy = (world_max.y / charmap_dim.y) * (charmap_dim.y - 2);
+		float shipworldstartx = (world_max.x / charmap_dim.x);
+		float shipworldstarty = (world_max.y / charmap_dim.y);
+		if (ship_pos.x <= shipworldstartx) { ship_pos.x = shipworldstartx; ship_velocity_x *= -0.5f; }
+		if (ship_pos.x >= shipworldendx) { ship_pos.x = shipworldendx; ship_velocity_x *= -0.5f; }
+		if (ship_pos.y <= shipworldstarty) { ship_pos.y = shipworldstarty; ship_velocity_y *= -0.5f; }
+		if (ship_pos.y >= shipworldendy) { ship_pos.y = shipworldendy; ship_velocity_y *= -0.5f; }
+
+		if (altitude < 0.0f) {
+			altitude = 0.0f;
+			ship_velocity_x = 0.0f; // x
+			ship_velocity_y = 0.0f; // y
+			ship_velocity_z = 0.0f; // z
+		}
+	}
+
+	// convert world coordinates to map coordinates.
+	olc::vi2d WorldToMapCoord( olc::vf2d ship_pos) {
+		olc::vf2d scale;
+		scale.x = charmap_dim.x / world_max.x;
+		scale.y = charmap_dim.y / world_max.y;
+
+		gm_world_to_map_inx.x = int(ship_pos.x * scale.x);
+		gm_world_to_map_inx.y = int(ship_pos.y * scale.y);
+
+		return gm_world_to_map_inx;
+	}
 
 
 	bool DropLastItemToMap() {
@@ -794,18 +836,6 @@ public:
 		SetPixelMode(olc::Pixel::Mode::ALPHA);
 		DrawDecal(olc::vf2d{ 0.0f, 0.0f }, dec_gui_background, olc::vf2d{ 1.0f, 1.0f });
 		SetPixelMode(olc::Pixel::Mode::NORMAL);
-
-		// chop a hole in it
-		// rect( {150, 80 } , { ScreenWidth()-150, ScreenHeight()-80}
-		/*
-		// just do some rect fill for now, gfx later
-		olc::Pixel col = olc::Pixel(olc::VERY_DARK_BLUE);
-
-		FillRectDecal( olc::vf2d{ 0.0f, 0.0f }, olc::vf2d{ float(ScreenWidth()), 80.0f}, col);
-		FillRectDecal( olc::vf2d{ float(ScreenWidth() - 150.0f), 0.0f }, olc::vf2d{ 150.0f, float(ScreenHeight()) }, col);
-		FillRectDecal( olc::vf2d{ 0.0f, 0.0f }, olc::vf2d{ 150.0f, float(ScreenHeight()) }, col);
-		FillRectDecal( olc::vf2d{ 0.0f, float(ScreenHeight()-80) }, olc::vf2d{ float(ScreenWidth()), 80.0f }, col);
-		*/
 	}
 
 	void DrawDockedSite(olc::vf2d pos) {
@@ -826,7 +856,6 @@ public:
 				}
 
 				// show on screen
-				// DrawStringDecal( pos, "Docked on", olc::GREEN);
 				DrawStringDecal( pos , tmpstr, olc::YELLOW);
 			}
 		}
@@ -903,6 +932,25 @@ public:
 		ship_pos = startpos;
 	}
 
+	void MsgBox(olc::vf2d pos, std::string msg) {
+		int newline_count = int(std::count(msg.begin(), msg.end(), '\n'));
+
+		if (newline_count == 0) newline_count = 1;
+
+		FillRectDecal(
+			pos + olc::vf2d{ 0.0f, 0.0f}, 
+			olc::vf2d{ 350.0f, 20.0f + newline_count * 8.0f },
+			olc::DARK_RED);
+
+		DrawStringDecal(pos + olc::vf2d{ 10.0f,10.0f}, msg, olc::WHITE);
+
+		DrawRectDecal(
+			pos + olc::vf2d{ 0.0f, 0.0f }, 
+			olc::vf2d{ 350.0f, 20.0f + newline_count * 8.0f }, 
+			olc::WHITE);
+	}
+
+
 	void Instructions(olc::vi2d pos) {
 		int offsy = 10; int yc = 0;
 		FillRect({ pos.x - 1,  pos.y - 1 }, { 500 + 2, 240 + 2 }, olc::VERY_DARK_GREY);
@@ -923,10 +971,10 @@ public:
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "       Simple mouse control, mouse wheel is throttle       ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "  If you are using the keys then center the cursor on ship ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "         A,D,W,S Roll/Pitch     UP,DOWN Throttle           ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "         SPACE Autoleveling     P Purge from inventory     ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "         F1 This page           M Music                    ", olc::DARK_GREEN);
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "      A,D,W,S Roll/Pitch     UP,DOWN Throttle              ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "      SPACE Autoleveling     SHIFT-P Purge from inventory  ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "      F1 This page           M Music                       ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "      J jettison/drop orb    SHIFT-M Mouse toggle          ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                         Credits                           ", olc::DARK_YELLOW);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "             Javidx9 for his olcPixelGameEngine,           ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "          Moros1138 for his olcPGEX_MiniAudio wrapper,     ", olc::DARK_GREEN);
@@ -995,35 +1043,6 @@ public:
 	}
 
 
-	//int ShowInventory(olc::vi2d pos) {
-	//	int offs = 20;
-	//	int j;
-	//	int inv_weight = 0;
-	//	int cargo_weight = 0;
-
-	//	if (inventory.size() > 0) {
-	//		for (j = 0; j < inventory.size(); ++j) {
-
-	//			// TODO: draw the orb in inventory GUI
-	//			DrawDecal({ 13.0f, float(62 + j * offs) }, dec_orb, olc::vf2d{ 0.1f, 0.1f });
-
-	//			ss.str(""); ss << static_cast<char>(inventory[j].cargoType);
-	//			DrawStringDecal({ 13.0f+8, float(62+8 + j * offs) }, ss.str(), olc::GREEN);
-
-
-	//			inv_weight += (inventory[j].cargoType - 48) * 100;
-	//		}
-	//		DrawRectDecal({ float(pos.x), float(pos.y) }, { 80.0f, float(offs * j + offs ) });
-	//	}
-	//	else {
-	//		DrawStringDecal({ float(pos.x + 10 + 8 * 8), float(pos.y) }, "Empty", olc::RED);
-	//	}
-
-	//	DrawStringDecal({ float(pos.x), float(pos.y) }, "Inventory", olc::GREEN);
-
-	//	return inv_weight;	// return the weight of inventory
-	//}
-
 	int ShowInventory(olc::vf2d pos) {
 		float offs = 20;
 		int j;
@@ -1039,10 +1058,8 @@ public:
 				ss.str(""); ss << static_cast<char>(inventory[j].cargoType);
 				DrawStringDecal({ pos.x + 10, float(pos.y+20 + j * offs) }, ss.str(), olc::GREEN);
 
-
 				inv_weight += (inventory[j].cargoType - 48) * 100;
 			}
-			// DrawRectDecal({ float(pos.x), float(pos.y) }, { 80.0f, float(offs * j + offs) });
 		}
 		else {
 			DrawStringDecal({ float(pos.x), float(pos.y+10) }, "Empty", olc::RED);
@@ -1053,6 +1070,9 @@ public:
 		return inv_weight;	// return the weight of inventory
 	}
 
+	void ResetFOWMap() {
+		game_map_fow = std::string(game_map_fow.length(), '.');
+	}
 
 	void CountTheChicken(int cargoType) {
 		switch (cargoType)
@@ -1078,28 +1098,27 @@ public:
 
 	bool DropInventoryItemOnToMap( int item_to_drop) {
 		int cargoType = 0;
-		// Anything here?
 		for (int i = 0; i < cargos.size(); ++i) {
 			if (fabs(ship_pos.x - cargos[i].pos.x) < game_object_proximity_limit+20) {
 				if (fabs(ship_pos.y - cargos[i].pos.y) < game_object_proximity_limit+20) {
-					// yay, something her
-					cargoType = cargos[i].cargoType;   // return docked at cargoType 
+					cargoType = cargos[i].cargoType;   // return cargoType at location
 
-					// there nothing here then we can drop
+					// if there nothing here then we can drop
 					if ( cargos[i].cargoType == ' ') {
-						// inventory.push_back(cargos[i]);
-						// sound_pickup_play = true;
-						// cargos.erase(cargos.begin() + i);  // off the map with it
 						cargos[i].cargoType = item_to_drop;	// put the dropped item here
 						return true;	// inventory dropped
 					}
 					else {
-						return false;	// the location is occopied
+						return false;	// the location is occupied
 					}
 				}
 			}
 		}
 		return false;
+	}
+
+	int GetItemFromFOWMap( olc::vi2d coord) {
+		return game_map_fow[coord.y * charmap_dim.x + coord.x] ;
 	}
 
 
@@ -1116,7 +1135,6 @@ public:
 						if (isdigit(cargos[i].cargoType)) {
 							inventory.push_back(cargos[i]);
 							sound_pickup_play = true;
-							// cargos.erase(cargos.begin() + i);  // off the map with it
 							cargos[i].cargoType = ' ';	// do not erase, but change it to gb_tile
 						}
 						else {
@@ -1140,6 +1158,76 @@ public:
 	}
 
 
+	int GetOffsetIn1D(olc::vi2d pp, olc::vi2d o, int maxLen) {
+		int c = (pp.y + o.y) * charmap_dim.x + (pp.x + o.x);
+
+		if (c < 0) {
+			std::cout << "c = " << c << " in GetOffsetIn1D\n";
+			c = 0;
+		}
+		if (c > maxLen) {
+			std::cout << "c = " << c << " in GetOffsetIn1D\n";
+			c = maxLen;
+		}
+
+		return c;
+	}
+
+	void ShowFOWMap(olc::vf2d pos) {
+		float offx = 0.0f;
+		float offy = 0.0f;
+		float stepx = 8.0f;
+		float stepy = 8.0f;
+		tmpstr = "";
+
+		for (int y = 0; y < charmap_dim.y; ++y) {
+			offx = 0.0f;
+			for (int x = 0; x < charmap_dim.x; ++x) {
+				tmpstr = game_map_fow[y * charmap_dim.x + x];
+				DrawStringDecal(pos + olc::vf2d{ offx, offy}, tmpstr);
+				offx += stepx;
+			}
+			offy += stepy;
+		}
+	}
+
+	void ShowShipOnFOWMap(olc::vf2d pos) {
+		float offx = 0.0f;
+		float offy = 0.0f;
+		float stepx = 8.0f;
+		float stepy = 8.0f;
+		tmpstr = "";
+
+		olc::vi2d mc = WorldToMapCoord(ship_pos);
+		DrawStringDecal(pos + olc::vf2d{ mc.x*stepx, mc.y*stepy }, "O", olc::RED);
+	}
+
+
+	void FOWMakeView(olc::vi2d pp) {
+		olc::vi2d o = { 0, 0 };
+		int strInx = 0;
+
+		// current pos
+		o = { 0, 0};  
+		strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); 
+		game_map_fow[strInx] = ' ';
+
+		// all sides
+		o = { -1, 0 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' '; // w
+		o = { 1, 0 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' ';  // e
+		o = { 0, 1 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' ';  // s
+		o = { 0, -1 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' '; // n
+
+		// diagonales
+		o = { -1, -1 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' ';  // nw
+		o = { 1, 1 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' '; // se
+		o = { 1, -1 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' '; // ne
+		o = { -1, 1 };  strInx = GetOffsetIn1D(pp, o, int(game_map_fow.size())); game_map_fow[strInx] = ' '; // sw
+	}
+
+		
+	
+
 	void DrawGameMapOnScreen(olc::vf2d ship_pos) {
 		float cx;
 		float cy;
@@ -1160,13 +1248,11 @@ public:
 		for (int i = 0; i < cargos.size(); ++i) {
 			cx = (cargos[i].pos.x - ship_pos.x + ship_on_screen_pos.x);
 			cy = (cargos[i].pos.y - ship_pos.y + ship_on_screen_pos.y);
+
 			// don't draw the object if it is outside the clip radius
-			// Radius
-			//if (sqrt((ship_pos.x - cargos[i].pos.x) * (ship_pos.x - cargos[i].pos.x) + (ship_pos.y - cargos[i].pos.y) * (ship_pos.y - cargos[i].pos.y)) < game_clip_objects_radius) {
-			//	center_x = cx - (spr_bg_tile->width * bg_tile_scale_x)/2 ;
-			//	center_y = cy - (spr_bg_tile->height * bg_tile_scale_y)/2 ;
-			//	DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
-			//}
+
+			// clip Radius
+			//if (sqrt((ship_pos.x - cargos[i].pos.x) * (ship_pos.x - cargos[i].pos.x) + (ship_pos.y - cargos[i].pos.y) * (ship_pos.y - cargos[i].pos.y)) < game_clip_objects_radius) {}
 
 			// clip rect
 			if ((cargos[i].pos.x - ship_pos.x) > clip_rectangle.tl.x && (cargos[i].pos.x - ship_pos.x) < clip_rectangle.br.x 
@@ -1174,15 +1260,19 @@ public:
 
 				center_x = cx - (spr_bg_tile->width * bg_tile_scale_x) / 2;
 				center_y = cy - (spr_bg_tile->height * bg_tile_scale_y) / 2;
-				switch (cargos[i].cargoType)
-				{
-				case 'o':
-					DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_border_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
-					break;
-				case ' ':
-				default:
-					DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
-					break;
+				
+				olc::vi2d mc = WorldToMapCoord(cargos[i].pos);
+				if (game_map_fow[mc.y * charmap_dim.x + mc.x] != '.') {
+					switch (cargos[i].cargoType)
+					{
+					case 'o':
+						DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_border_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
+						break;
+					case ' ':
+					default:
+						DrawDecal(olc::vf2d{ center_x, center_y }, dec_bg_tile, olc::vf2d{ bg_tile_scale_x, bg_tile_scale_y });
+						break;
+					}
 				}
 			}
 		}
@@ -1206,46 +1296,49 @@ public:
 			}
 
 			float dec_scale;
-			// float dec_scaley;
-
 			float center_y;
 			float center_x;
 			bool draw_id_on_object = false;
+
 			// don't draw the object if it is outside the clip radius
 			if (sqrt((ship_pos.x - cargos[i].pos.x) * (ship_pos.x - cargos[i].pos.x) + (ship_pos.y - cargos[i].pos.y) * (ship_pos.y - cargos[i].pos.y)) < game_clip_objects_radius) {
 				draw_id_on_object = false;
-				switch (cargos[i].cargoType)
-				{
-				case '*':
-					dec_scale = 0.3f;
-					center_x = cx - (spr_startpad->width * dec_scale) / 2;
-					center_y = cy - (spr_startpad->height * dec_scale) / 2;
-					DrawDecal(olc::vf2d{ center_x, center_y }, dec_startpad, olc::vf2d{ dec_scale,dec_scale });
-					break;
-				case 'd':
-					dec_scale = 0.1f;
-					center_x = cx - (spr_chest->width * dec_scale) / 2;
-					center_y = cy - (spr_chest->height * dec_scale) / 2;
-					DrawDecal(olc::vf2d{ center_x, center_y }, dec_chest, olc::vf2d{ dec_scale,dec_scale });
-					break;
-				case ' ':
-					break;
-				case 'o':	// border tile
-					break;
-				default:
-					// Draw the orb
-					dec_scale = 0.1f;
-					center_x = cx - (spr_orb->width * dec_scale) / 2;
-					center_y = cy - (spr_orb->height * dec_scale) / 2;
-					DrawDecal(olc::vf2d{ center_x, center_y }, dec_orb, olc::vf2d{ dec_scale,dec_scale });
-					draw_id_on_object = true;
-					break;
-				}
 
-				if ( draw_id_on_object) {
-					ss.str(""); ss << std::setw(1) << static_cast<char>(cargos[i].cargoType);
-					DrawStringDecal({ cx - 3.0f,cy - 3.0f }, ss.str());
-					DrawStringDecal({ float(int(cx) - 3),float(int(cy) - 3 )}, ss.str());
+				olc::vi2d mc = WorldToMapCoord(cargos[i].pos);
+				if (game_map_fow[mc.y * charmap_dim.x + mc.x] != '.') {
+
+					switch (cargos[i].cargoType)
+					{
+					case '*':
+						dec_scale = 0.3f;
+						center_x = cx - (spr_startpad->width * dec_scale) / 2;
+						center_y = cy - (spr_startpad->height * dec_scale) / 2;
+						DrawDecal(olc::vf2d{ center_x, center_y }, dec_startpad, olc::vf2d{ dec_scale,dec_scale });
+						break;
+					case 'd':
+						dec_scale = 0.1f;
+						center_x = cx - (spr_chest->width * dec_scale) / 2;
+						center_y = cy - (spr_chest->height * dec_scale) / 2;
+						DrawDecal(olc::vf2d{ center_x, center_y }, dec_chest, olc::vf2d{ dec_scale,dec_scale });
+						break;
+					case ' ':
+						break;
+					case 'o':	// border tile
+						break;
+					default:
+						// Draw the orb
+						dec_scale = 0.1f;
+						center_x = cx - (spr_orb->width * dec_scale) / 2;
+						center_y = cy - (spr_orb->height * dec_scale) / 2;
+						DrawDecal(olc::vf2d{ center_x, center_y }, dec_orb, olc::vf2d{ dec_scale,dec_scale });
+						draw_id_on_object = true;
+						break;
+					}
+
+					if (draw_id_on_object) {
+						ss.str(""); ss << std::setw(1) << static_cast<char>(cargos[i].cargoType);
+						DrawStringDecal({ cx - 3.0f,cy - 3.0f }, ss.str());
+					}
 				}
 			}
 
@@ -1342,35 +1435,34 @@ public:
 		float scale_y = float(minimap_size.y) / world_max.y;
 
 		mm_pos = {1,1};
-//		SetPixelMode(olc::Pixel::Mode::ALPHA);
-		// olc::Sprite *oldDrawTarget = GetDrawTarget();
 		SetDrawTarget(spr_minimap);
 		Clear(olc::DARK_BLUE);
 
 		// draw cargos
 		for (int i = 0; i < cargos.size(); ++i) {
 			if (cargos[i].cargoType != ' ') {
-				// TODO: calculate what size we need regarding the size of map versus size of minimap on screen
-				// Draw({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, olc::GREEN);
-				switch (char(cargos[i].cargoType)) {
-				case 'o':
-					FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::WHITE);
-					break;
-				case 'd':
-					// draw dropzone
-					// FillCircle({ mm_pos.x + int(dropzone.x * scale_x), mm_pos.y + int(dropzone.y * scale_y) }, 1, olc::RED);
-					FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::RED);
-					break;
-				case '*':
-					// draw startpad
-					// FillCircle({ mm_pos.x + int(dropzone.x * scale_x), mm_pos.y + int(dropzone.y * scale_y) }, 1, olc::YELLOW);
-					FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::YELLOW);
-					break;
-				case ' ':
-					break;
-				default:
-					FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::GREEN);
-					break;
+
+				olc::vi2d mc = WorldToMapCoord(cargos[i].pos);
+				if (game_map_fow[mc.y * charmap_dim.x + mc.x] != '.') {
+
+					switch (char(cargos[i].cargoType)) {
+					case 'o':
+						FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::WHITE);
+						break;
+					case 'd':
+						// draw dropzone
+						FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::RED);
+						break;
+					case '*':
+						// draw startpad
+						FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::YELLOW);
+						break;
+					case ' ':
+						break;
+					default:
+						FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::GREEN);
+						break;
+					}
 				}
 			}
 		}
@@ -1379,13 +1471,9 @@ public:
 		// draw ship
 		DrawCircle({ mm_pos.x + int((ship_pos.x) * scale_x), mm_pos.y + int((ship_pos.y) * scale_y) }, 2, olc::RED);
 
-		// minimap boundary
-		// DrawRect({ mm_pos.x - 4,mm_pos.y - 4 }, { minimap_size.x + 3,minimap_size.y + 1 }, olc::YELLOW);
-
 		dec_minimap->Update();
 		DrawDecal( minimap_position, dec_minimap);
 		SetDrawTarget(nullptr);
-//		SetPixelMode(olc::Pixel::Mode::NORMAL);
 	}
 
 	// TODO:  small bar offset bug on these three instruments
