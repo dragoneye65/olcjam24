@@ -138,7 +138,7 @@ public:
 	olc::vf2d score_pos{ 10.0f,10.0f };
 	float gameSpeed = 20.0f;
 	bool game_toggle_pause = false;
-	float game_picup_drop_height = 5.0f;
+	float game_pickup_drop_height = 5.0f;
 	float game_ground_effect_height = 10.0f;
 	float game_gravity_ground_effect = -gravity / 2;
 
@@ -1169,7 +1169,7 @@ public:
 	int CheckDropPickupOnLanding() {
 		int cargoType = 0;
 //		if (int(altitude) == 0) {
-   		if (int(altitude) <= game_picup_drop_height) {   // orbs do have height, so you can pick it up if <= 5
+   		if (int(altitude) <= game_pickup_drop_height) {   // orbs do have height, so you can pick it up if <= 5
 			// Anything here?
 			for (int i = 0; i < cargos.size(); ++i) {
 				if (fabs(ship_pos.x - cargos[i].pos.x) < game_object_proximity_limit) {
