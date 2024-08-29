@@ -1444,7 +1444,6 @@ public:
 			if (game_map_fow[mc.y * charmap_dim.x + mc.x] != '.') {
 				if (cargos[i].cargoType != ' ') {
 
-
 					switch (char(cargos[i].cargoType)) {
 					case 'o':
 						FillCircle({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) }, 1, olc::WHITE);
@@ -1466,6 +1465,7 @@ public:
 			}
 			}
 			else {  // fog it up
+				// TODO: scale the size of the rect so we can choose any size for the minimap 
 				FillRect({ mm_pos.x + int(cargos[i].pos.x * scale_x), mm_pos.y + int(cargos[i].pos.y * scale_y) },
 					olc::vf2d{ 7.0f, 5.0f }, olc::VERY_DARK_BLUE);
 			}
