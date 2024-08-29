@@ -11,7 +11,6 @@ TODO
 - inventory on ship as gfx must be sentered and offset correctly scaled
 - Trottle should stay the same when tilting/yawing
 - added bonus points for more orbs in inventory should be weight not count of items
-- make a state where it counts the inventory one by one with gfx on drop
 - clamp fEpilapseTime!  Tnx moros
 - fix ship sound
 - Different object to pick up on map
@@ -26,11 +25,14 @@ TODO
 - Freetype font support.
 - Scale the fow correctly on minimap so the minimap can scale to any size
 - make any size map work
-
+- Noen vanskeligere maps med ting man ikke skal treffe/ lasere eller noe helt annet
+- Om du klarer noe på en tid, så kan du få ting man har lyst på som f.eks en skin, evt kan sånn crash screens more appeling for the eyes som rewards, landing animations osv
+- En satisfying lyd når man får til noe (like putting orbs in chest)
 
 Current work
+- make a state where it counts the inventory one by one with gfx on drop, same goes for exploding ship
+- explosion animation
 
 
 
 Commit comment
-

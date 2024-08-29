@@ -57,6 +57,7 @@ public:
 	olc::Sprite* spr_ship = nullptr;	olc::Decal* dec_ship = nullptr;
 	olc::Sprite* spr_minimap = nullptr; olc::Decal* dec_minimap = nullptr;
 	olc::Sprite* spr_gui_background = nullptr;	olc::Decal* dec_gui_background = nullptr;
+	olc::Sprite* spr_explosion = nullptr; olc::Decal* dec_explosion = nullptr;
 
 	// *** Ship ***
 	int ship_inventory_capasity = 3;
@@ -111,6 +112,9 @@ public:
 	float velocity_alert_warning_threshhold = 0.6f;
 	enum state { INTRO, GAMEON, THEEND, GAMEWON };
 	enum state game_state = state::INTRO;
+	enum state_sub { NORMAL, PAUSE, ASKQUIT };
+	enum state_sub game_state_sub = state_sub::NORMAL;
+	enum state game_return_state = state::INTRO;			// state to return to after new state is done, ie pause/ask user quit/ 
 	float game_object_proximity_limit = 10.0f;
 	float game_clip_objects_radius = 120.0f;
 	ClipRect clip_rectangle = {{ -200.0f, -140.0f }, { 200.0f, 140.0f} };
@@ -132,11 +136,11 @@ public:
 	olc::vf2d docked_pos = { 0.0f ,0.0f };				// initialized in oncreate 
 	olc::vf2d inventory_weight_pos = { 100.0f, 10.0f };
 	olc::vf2d score_pos{ 10.0f,10.0f };
-	bool msg_box_toggle = false;
 	float gameSpeed = 20.0f;
 	bool game_toggle_pause = false;
+	bool game_toggle_ask_user_quit = false;	  // if this is true, ask user if he wants to quit
 
-	// docked at string pos = -
+	
 
 	// need some temperary stuff
 	std::string tmpstr;			
@@ -307,13 +311,17 @@ public:
 		spr_bg_border_tile = new olc::Sprite("./res/img/bg_border_tile.png");	dec_bg_border_tile = new olc::Decal(spr_bg_border_tile);
 		spr_ship = new olc::Sprite("./res/img/ship.png");	dec_ship = new olc::Decal(spr_ship);
 		spr_gui_background = new olc::Sprite("./res/img/gui_background.png");	dec_gui_background = new olc::Decal(spr_gui_background);
+		
+		// 960x2304 px,   5x12 = 60 images
+		// one image: 192x192px
+		spr_explosion = new olc::Sprite("./res/img/explosion.png");	dec_explosion = new olc::Decal(spr_explosion);
 
 		// chop a hole in the gui background
 		SetDrawTarget(spr_gui_background);
 		FillRect( {150,80}, {640-150-150, 360-80-80}, olc::BLANK);
 		SetDrawTarget(nullptr);
 		dec_gui_background->Update();
-
+		
 		spr_minimap = new olc::Sprite(minimap_size.x, minimap_size.y); dec_minimap = new olc::Decal(spr_minimap);
 
 		return true;
@@ -410,7 +418,8 @@ public:
 			}
 
 			// engine speed sound relative to the avg throttle
-			if (!game_toggle_pause) {
+//			if (!game_toggle_pause) {
+			if (game_state_sub == state_sub::NORMAL) {
 				// drop/jettison item back into map if position is free
 				if (GetKey(olc::Key::J).bPressed) {
 					if (DropLastItemToMap())  // dropped then play wav if not, do nothing
@@ -443,7 +452,8 @@ public:
 
 			// Dont update anything while showing the intro screen
 			if (!game_toggle_intro) {
-				if (!game_toggle_pause) {
+				// if (!game_toggle_pause) {
+				if ( game_state_sub == state_sub::NORMAL) {
 					UpdatePhysics(fElapsedTime);
 				} // physics update toggled off if game_toggle_intro
 
@@ -451,20 +461,14 @@ public:
 				// open up the fow in a circle around the player
 				FOWMakeView(mc);
 
-				DrawGameMapOnScreen(ship_pos);  // TODO: Add fog war
+				DrawGameMapOnScreen(ship_pos); 
 				DrawHUD(hud_toggle);
-				DrawMinimap(minimap_position, ship_pos); // TODO: Add fog of war
+				DrawMinimap(minimap_position, ship_pos);
 				DrawInventoryOnShip();
 				DrawShip();
 				olc::vi2d tmpinx = WorldToMapCoord(ship_pos);
 
-				// TODO: just a test, delete when the fun is over
-				if (msg_box_toggle) {
-					ss.str(""); ss << " The game is paused, take a break ";
-					MsgBox({ 100.0f, 110.0f }, ss.str());
-				}
-
-				//  ShowFOWMap({ 20.0f,150.0f });
+				// ShowFOWMap({ 20.0f,150.0f });
 				// ShowShipOnFOWMap({ 20.0f,150.0f });
 
 				DrawMouseCursor(mouse_control_toggle);
@@ -472,6 +476,23 @@ public:
 			else {
 				Instructions(instructions_pos + olc::vi2d{ 30,50 });
 			}
+
+			if (game_state_sub == state_sub::PAUSE) {
+				// Pause the game
+				tmpstr = " The game is paused, take a break ";
+				MsgBox({ ScreenWidth() / 2 - (float(tmpstr.size()) * 8) / 2, 110.0f }, 10.0f + tmpstr.size() * 8, tmpstr);
+
+				if (GetKey(olc::Key::P).bPressed) {
+					game_state_sub = state_sub::NORMAL;
+				}
+			} else 
+				if (!GetKey(olc::Key::SHIFT).bHeld && GetKey(olc::Key::P).bPressed && game_state_sub == state_sub::NORMAL) {
+				game_state_sub = state_sub::PAUSE;
+				ma_engine.Toggle(sound_bgm_id);
+				ma_engine.Toggle(sound_ship_id);
+			}
+
+			
 
 		} // endif: state_GAMEON ---
 
@@ -496,12 +517,7 @@ public:
 				sound_music_toggle = !sound_music_toggle;
 				ma_engine.Toggle(sound_bgm_id);
 			}
-			if (GetKey(olc::Key::P).bPressed) {
-				msg_box_toggle = !msg_box_toggle;
-				game_toggle_pause = !game_toggle_pause;
-				ma_engine.Toggle(sound_bgm_id);
-				ma_engine.Toggle(sound_ship_id);
-			}
+
 		}
 
 
@@ -531,13 +547,14 @@ public:
 			EndGame();
 
 			// SPACE: continue if not crashed, restarts if crashed
-			if (GetKey(olc::Key::SPACE).bReleased) {
+			if (GetKey(olc::Key::SPACE).bReleased && game_state_sub == state_sub::NORMAL) {
 				if (!ship_crashed) {
 					game_state = state::GAMEON;
 					ma_engine.Pause(sound_ship_id);
 				}
-				else
+				else {
 					RestartGame();
+				}
 			}
 
 			// ENTER: restart
@@ -548,18 +565,40 @@ public:
 		}  // state::THEEND
 
 		// Escape to THEEND, or quit if pressed while in THEEND state
-		if (GetKey(olc::Key::ESCAPE).bPressed || GetKey(olc::Key::BACK).bPressed) {
-			if (game_state == state::THEEND) {
-				return false;
-			}
-			else {
-				game_state = state::THEEND;
+		if (game_state_sub == state_sub::NORMAL) {
+			if (GetKey(olc::Key::ESCAPE).bPressed || GetKey(olc::Key::BACK).bPressed) {
+				if (game_state == state::THEEND) {
+					game_toggle_ask_user_quit = !game_toggle_ask_user_quit;
+					game_state_sub = state_sub::ASKQUIT;
+					game_return_state = state::THEEND;
+					// return false;
+				}
+				else {
+					game_state = state::THEEND;
+				}
 			}
 		}
 
-		// If not playing, kill the volume
-		if (game_state == state::INTRO) {
+		if (game_state == state::THEEND) {
+			if (game_state_sub == state_sub::ASKQUIT) {
+
+				tmpstr = " Want to quit the game? Y/N ";
+				MsgBox({ ScreenWidth()/2- (float(tmpstr.size()) * 8)/2, float(ScreenHeight()/2-20) }, 10.0f+float(tmpstr.size())*8, tmpstr);
+
+				if (GetKey(olc::Key::Y).bPressed ) {
+					return false;		// quit game
+				}
+				if ( GetKey(olc::Key::N).bPressed) {
+					game_state_sub = state_sub::NORMAL;
+					game_state = game_return_state;	// get back to the state this was called from
+				}
+			}
+		}
+
+		// If not playing, pause ship sound
+		if (game_state == state::INTRO ) {
 			ma_engine.Pause(sound_ship_id);
+			ma_engine.Pause(sound_bgm_id);
 		}
 
 		return true;
@@ -932,21 +971,21 @@ public:
 		ship_pos = startpos;
 	}
 
-	void MsgBox(olc::vf2d pos, std::string msg) {
+	void MsgBox(olc::vf2d pos, float width, std::string msg) {
 		int newline_count = int(std::count(msg.begin(), msg.end(), '\n'));
 
 		if (newline_count == 0) newline_count = 1;
 
 		FillRectDecal(
 			pos + olc::vf2d{ 0.0f, 0.0f}, 
-			olc::vf2d{ 350.0f, 20.0f + newline_count * 8.0f },
+			olc::vf2d{ width, 20.0f + newline_count * 8.0f },
 			olc::DARK_RED);
 
 		DrawStringDecal(pos + olc::vf2d{ 10.0f,10.0f}, msg, olc::WHITE);
 
 		DrawRectDecal(
 			pos + olc::vf2d{ 0.0f, 0.0f }, 
-			olc::vf2d{ 350.0f, 20.0f + newline_count * 8.0f }, 
+			olc::vf2d{ width, 20.0f + newline_count * 8.0f },
 			olc::WHITE);
 	}
 
