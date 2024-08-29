@@ -24,6 +24,9 @@ TODO
 - Instrument bar's indicators is missaligned, offset  at the bottom
 - Make the intro, endgame and crash screens more appeling for the eyes
 - Freetype font support.
+- Scale the fow correctly on minimap so the minimap can scale to any size
+- make any size map work
+
 
 Current work
 
