@@ -957,9 +957,9 @@ public:
 		DrawRect({ pos.x, pos.y }, { 500, 240 }, olc::GREEN);
 
 		ss << std::fixed << std::setprecision(2);
-		DrawString({ ScreenWidth() / 2 - 10 * 16 / 2,24 }, "Hover run", olc::YELLOW, 2);
+		DrawString({ ScreenWidth() / 2 - 13 * 16 / 2,24 }, "Hover Run II", olc::YELLOW, 2);
 
-		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                Made for the olcCodeJam 2024               ", olc::DARK_GREEN);
+		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "   Continued development from the olcCodeJam 2024 entry    ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "                                                           ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "  The game is played by watching the altitude carefully.   ", olc::DARK_GREEN);
 		DrawString({ pos.x + 10, pos.y + offsy * ++yc }, "   You are running missions gathering cargo by landing     ", olc::DARK_GREEN);
