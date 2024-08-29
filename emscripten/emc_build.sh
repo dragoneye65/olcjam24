@@ -9,7 +9,8 @@ ln -s ../inc/miniaudio.h
 ln -s ../inc/olcPGEX_MiniAudio.h .
 ln -s ../inc/olcPixelGameEngine.h .
 bash -c "source $emsdk/emsdk_env.sh && $cmd"
-exit
-em++ -std=c++20 -O2 -s ALLOW_MEMORY_GROWTH=1 -s MAX_WEBGL_VERSION=2 -s MIN_WEBGL_VERSION=2 -s USE_LIBPNG=1 -sUSE_SDL_MIXER=2 hover.cpp -o index.html --preload-file ../res
+cp ../Doc/javids_index.html index.html
+rm HoverRunII.zip
+zip HoverRunII.zip index.data index.html index.js index.wasm
 
 
