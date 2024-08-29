@@ -1,0 +1,85 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\hover.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="inc\olcPixelGameEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\olcSoundWaveEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\miniaudio.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\olcPGEX_MiniAudio.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\img\bg_border_tile.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\img\bg_tile.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\img\chest.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\img\orb.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\img\ship.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\img\startpad.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\img\background_tile.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\img\gui_background.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Media Include="res\wav\bgm.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
+    <Media Include="res\wav\crash.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
+    <Media Include="res\wav\drop.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
+    <Media Include="res\wav\engine.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
+    <Media Include="res\wav\pickup.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
+    <Media Include="res\wav\purge.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
+  </ItemGroup>
+</Project>
