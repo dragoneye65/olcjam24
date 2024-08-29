@@ -138,7 +138,6 @@ public:
 	olc::vf2d score_pos{ 10.0f,10.0f };
 	float gameSpeed = 20.0f;
 	bool game_toggle_pause = false;
-	bool game_toggle_ask_user_quit = false;	  // if this is true, ask user if he wants to quit
 
 	
 
@@ -417,8 +416,7 @@ public:
 				game_toggle_pause = !game_toggle_pause;
 			}
 
-			// engine speed sound relative to the avg throttle
-//			if (!game_toggle_pause) {
+			// if the sub state is normal then all ok, run the game
 			if (game_state_sub == state_sub::NORMAL) {
 				// drop/jettison item back into map if position is free
 				if (GetKey(olc::Key::J).bPressed) {
@@ -445,6 +443,7 @@ public:
 					if (!ma_engine.IsPlaying(sound_bgm_id))
 						ma_engine.Toggle(sound_bgm_id, true);
 
+				// engine speed sound relative to the avg throttle
 				engine_sound_speed = 1.0f + 2.0f * ship_avr_throttle;
 				ma_engine.SetPitch(sound_ship_id, engine_sound_speed);
 			}
@@ -452,10 +451,11 @@ public:
 
 			// Dont update anything while showing the intro screen
 			if (!game_toggle_intro) {
-				// if (!game_toggle_pause) {
+
+				// no physics if state_sub isn't normal
 				if ( game_state_sub == state_sub::NORMAL) {
 					UpdatePhysics(fElapsedTime);
-				} // physics update toggled off if game_toggle_intro
+				} 
 
 				olc::vi2d mc = WorldToMapCoord(ship_pos);
 				// open up the fow in a circle around the player
@@ -568,10 +568,8 @@ public:
 		if (game_state_sub == state_sub::NORMAL) {
 			if (GetKey(olc::Key::ESCAPE).bPressed || GetKey(olc::Key::BACK).bPressed) {
 				if (game_state == state::THEEND) {
-					game_toggle_ask_user_quit = !game_toggle_ask_user_quit;
 					game_state_sub = state_sub::ASKQUIT;
 					game_return_state = state::THEEND;
-					// return false;
 				}
 				else {
 					game_state = state::THEEND;
