@@ -32,7 +32,7 @@ TODO
 Current work
 - make a state where it counts the inventory one by one with gfx on drop, same goes for exploding ship
 - explosion animation
-
+- pickup orbs from altitude < 5 , ie the orbs does have height
 
 
 Commit comment

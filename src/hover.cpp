@@ -806,7 +806,14 @@ public:
 			ship_velocity_z += fElapsedTime * gameSpeed * angle_dec_thrust * ship_avr_throttle;
 		}
 
-		ship_velocity_z -= fElapsedTime * gameSpeed * gravity;
+		// be kind on gravity if less than 10, uhm ground-effect?  :-P
+		// TODO: need an occilation dampener here? :thinking:, nah that's how GE works.
+		float grav = -gravity/2;
+		if ( altitude < 10) 
+			ship_velocity_z -= fElapsedTime * gameSpeed * grav;
+		else
+			ship_velocity_z -= fElapsedTime * gameSpeed * gravity;
+
 		ship_velocity_z -= fElapsedTime * ship_weight * 0.005f; // normalize weight
 		ship_velocity_x += fElapsedTime * gameSpeed * sin(ship_angle_x);
 		ship_velocity_y += fElapsedTime * gameSpeed * sin(ship_angle_y);
@@ -1161,7 +1168,8 @@ public:
 
 	int CheckDropPickupOnLanding() {
 		int cargoType = 0;
-		if (int(altitude) == 0) {
+//		if (int(altitude) == 0) {
+   		if (int(altitude) <= 5) {   // orbs do have height, so you can pick it up if <= 5
 			// Anything here?
 			for (int i = 0; i < cargos.size(); ++i) {
 				if (fabs(ship_pos.x - cargos[i].pos.x) < game_object_proximity_limit) {
