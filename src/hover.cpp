@@ -2,7 +2,7 @@
 *                 Made for the olc CodeJam 2024
 *  
 *  I started late and had 5 days til deadline, this is what ya get :)
-*  There is continued development on the forced project Hover Run II
+*  There is continued development on the forked "Hover Run II"
 * 
 *  Regards: @dragoneeye  (discord)
 */
