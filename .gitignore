@@ -3,3 +3,9 @@
 ################################################################################
 
 /Doc/mrAImans_contribution.cpp
+/.vs
+/olcjam24/x64
+/x64
+/olcjam24.vcxproj.user
+*.h
+/BinBundle
