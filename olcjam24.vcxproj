@@ -133,12 +133,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\hover.cpp" />
-    <ClCompile Include="src\pge.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\olcPixelGameEngine.h" />
     <ClInclude Include="inc\olcSoundWaveEngine.h" />
-    <ClInclude Include="inc\pge.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

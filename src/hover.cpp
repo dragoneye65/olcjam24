@@ -1,3 +1,14 @@
+/* 
+*                 Made for the olc CodeJam 2024
+*  
+*  I started late and had 5 days til deadline, this is what ya get :)
+*  There is continued development on the forced project Hover Run II
+* 
+*  Regards: @dragoneeye  (discord)
+*/
+
+
+
 #define OLC_PGE_APPLICATION
 #include "olcPixelGameEngine.h"
 
