@@ -12,6 +12,10 @@
 #define OLC_PGE_APPLICATION
 #include "olcPixelGameEngine.h"
 
+#define OLC_PGEX_SPLASHSCREEN
+#include "olcPGEX_SplashScreen.h"
+
+
 #define OLC_PGEX_MINIAUDIO
 #include "olcPGEX_MiniAudio.h"
 
@@ -33,6 +37,8 @@ public:
 		sAppName = "Hover";
 	}
 
+	olc::SplashScreen splashme;
+	
 	// todo: this struct is wrongly named cargo, it is the content of the world map
 	struct cargo {
 		olc::vf2d pos;			// position in world space

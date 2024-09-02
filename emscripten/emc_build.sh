@@ -1,7 +1,7 @@
 #!/bin/bash
 
 emsdk="~/emsdk"
-cmd="em++ -std=c++20 -O2 -s ALLOW_MEMORY_GROWTH=1 -s MAX_WEBGL_VERSION=2 -s MIN_WEBGL_VERSION=2 -s USE_LIBPNG=1 -sUSE_SDL_MIXER=2 hover.cpp -o index.html --preload-file ./res"
+cmd="em++ -std=c++20 -O2 -s ALLOW_MEMORY_GROWTH=1 -s MAX_WEBGL_VERSION=2 -s MIN_WEBGL_VERSION=2 -s USE_LIBPNG=1 -sUSE_SDL_MIXER=2 hover.cpp -o index.html --preload-file ../res"
 
 echo "source $emsdk/emsdk_env.sh and run the compile command for ya..."
 ln -s ../src/hover.cpp .
