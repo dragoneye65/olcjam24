@@ -253,7 +253,7 @@ public:
 		sound_purge_id = ma_engine.LoadSound("./res/wav/purge.wav");
 		sound_ship_id = ma_engine.LoadSound("./res/wav/engine.wav");
 		ma_engine.SetVolume(sound_ship_id, 0.2f);
-		ma_engine.Toggle(sound_ship_id, true);
+		// ma_engine.Toggle(sound_ship_id, true);
 
 		spr_orb = new olc::Sprite("./res/img/orb.png");	dec_orb = new olc::Decal(spr_orb);
 		spr_chest = new olc::Sprite("./res/img/chest.png");	dec_chest = new olc::Decal(spr_chest);
